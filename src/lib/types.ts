@@ -49,6 +49,24 @@ export type WeatherAnalysis = {
   forecast: ForecastDay[];
 };
 
+export type ClimateMonthRecord = {
+  month: string;
+  temperatureMeanC: number | null;
+  precipitationMm: number | null;
+  windMaxAverageKmh: number | null;
+  solarRadiationAverageMjM2: number | null;
+};
+
+export type ClimateHistoryAnalysis = {
+  periodStart: string;
+  periodEnd: string;
+  model: string;
+  months: ClimateMonthRecord[];
+  temperatureMeanC: number | null;
+  annualizedPrecipitationMm: number | null;
+  wettestMonth: string | null;
+};
+
 export type EnergyAnalysis = {
   solarRadiationKwhM2Day: number | null;
   temperatureAverageC: number | null;
@@ -76,6 +94,21 @@ export type SeismicAnalysis = {
   events: SeismicEvent[];
 };
 
+export type SeismicYearRecord = {
+  year: number;
+  count: number;
+  within100Km: number;
+  maximumMagnitude: number | null;
+};
+
+export type SeismicHistoryAnalysis = {
+  periodStart: string;
+  periodEnd: string;
+  years: SeismicYearRecord[];
+  totalEvents: number;
+  maximumMagnitude: number | null;
+};
+
 export type RiskLevel = "Bajo" | "Moderado" | "Alto";
 
 export type SiteAssessment = {
@@ -95,8 +128,10 @@ export type AnalysisResult = {
   };
   terrain: TerrainAnalysis;
   weather: WeatherAnalysis;
+  climateHistory: ClimateHistoryAnalysis;
   energy: EnergyAnalysis;
   seismic: SeismicAnalysis;
+  seismicHistory: SeismicHistoryAnalysis;
   assessment: SiteAssessment;
   sources: DataSource[];
   warnings: string[];

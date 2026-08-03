@@ -6,6 +6,7 @@ Plataforma pública y gratuita de prefactibilidad territorial para Costa Rica. I
 
 - [Manual de uso de Civilscope CR](docs/MANUAL_DE_USO.md)
 - [Guía de publicación en GitHub y Vercel](docs/GUIA_DESPLIEGUE_GITHUB_VERCEL.md)
+- [Análisis visual del video Vista, minutos 0:50–1:50](docs/ANALISIS_VIDEO_VISTA.md)
 
 ## Capacidades incluidas
 
@@ -14,8 +15,9 @@ Plataforma pública y gratuita de prefactibilidad territorial para Costa Rica. I
 - Elevación, pendiente, orientación y relieve derivados del MDE nacional de 10 × 10 m.
 - Respaldo automático con Copernicus DEM de 90 m si el MDE nacional no está disponible.
 - Temperatura, viento, precipitación, radiación y humedad superficial del suelo.
+- Histórico climático mensual de 24 meses mediante reanálisis ERA5-Land.
 - Potencial solar indicativo mediante NASA POWER.
-- Actividad sísmica M2.5+ a 250 km durante los últimos 12 meses mediante USGS.
+- Actividad sísmica reciente y tendencia de cinco años para eventos M2.5+ mediante USGS.
 - Lectura preliminar de complejidad topográfica y riesgo de drenaje.
 - Exportación del informe en PDF y de todos los datos en JSON.
 - Trazabilidad y estado individual de cada fuente.
@@ -48,10 +50,10 @@ Si ninguna de esas fuentes está disponible, la plataforma informa el cambio y u
 | --- | --- | --- |
 | IGN MDE 2017 / SNIT | Elevación y derivados a 10 m; capa WMTS | Público, sin autenticación |
 | Copernicus DEM vía Open-Meteo | Respaldo de elevación a 90 m | Público para el MVP |
-| Open-Meteo | Pronóstico y variables de suelo | Público, sin clave |
+| ECMWF IFS HRES vía Open-Meteo | Pronóstico de precipitación y demás variables a 9 km | Público, sin clave |
+| Open-Meteo / ERA5-Land | Reanálisis climático histórico de 24 meses | Público, sin clave |
 | NASA POWER Daily | Radiación, temperatura y viento recientes | Público, sin clave |
 | USGS Earthquake Catalog | Sismicidad reciente e histórica | Público, sin clave |
-| Copernicus C3S / ERA5 | Reanálisis climático complementario | Integración futura; requiere cuenta CDS |
 
 ## Desarrollo local
 
@@ -77,6 +79,7 @@ npm run build
 - `src/app/api/analyze/route.ts` valida la solicitud y ejecuta las consultas científicas en Node.js.
 - `src/lib/terrain-dem.ts` transforma WGS84 a CRTM05 y lee únicamente una ventana de 3 × 3 celdas del GeoTIFF.
 - `src/lib/analysis.ts` consulta las fuentes en paralelo, calcula derivados y tolera fallos parciales.
+- `src/lib/history.ts` consulta y agrega los históricos climáticos y sísmicos.
 - `src/components/analysis-map.tsx` incorpora Leaflet y el WMTS oficial de SNIT.
 - `src/components/dashboard.tsx` presenta indicadores, detalle técnico y exportaciones.
 
@@ -89,7 +92,7 @@ Los resultados son insumos de prefactibilidad. No sustituyen levantamiento topog
 ## Próximas etapas recomendadas
 
 1. Convertir y publicar el MDE como COG optimizado para producción.
-2. Añadir ERA5/AgERA5 mediante Copernicus CDS.
+2. Evaluar registros de estaciones meteorológicas del IMN para complementar el reanálisis ERA5-Land, sujeto a disponibilidad y condiciones de uso.
 3. Incorporar límites administrativos oficiales, búsqueda geocodificada y guardado opcional de proyectos.
 4. Agregar capas nacionales de amenazas, catastro y normativa conforme a sus condiciones de uso.
 5. Mejorar informes, auditoría de consultas y herramientas públicas de colaboración.

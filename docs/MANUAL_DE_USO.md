@@ -124,11 +124,20 @@ Las categorías **Bajo**, **Moderado** y **Alto** son señales de prefactibilida
 
 Presenta el pronóstico de siete días con:
 
+El pronóstico utiliza explícitamente el modelo global ECMWF IFS HRES de 9 km, servido mediante Open-Meteo.
+
 - Temperatura mínima y máxima.
 - Precipitación diaria y acumulada.
 - Velocidad máxima del viento.
 - Radiación solar.
 - Humedad superficial estimada del suelo.
+
+Además incluye un histórico de los últimos 24 meses completos con:
+
+- Precipitación acumulada y temperatura media por mes.
+- Temperatura media del período, precipitación anualizada y mes más lluvioso.
+- Viento máximo promedio y radiación mensual disponibles en la descarga JSON.
+- Datos de reanálisis ERA5-Land. Son una estimación climática de cuadrícula, no mediciones de una estación meteorológica local.
 
 ### 7.3 Sismicidad
 
@@ -139,6 +148,8 @@ Muestra:
 - Magnitud máxima reportada.
 - Distancia al evento más cercano.
 - Lista de eventos recientes con profundidad y enlace al registro de USGS.
+- Conteos anuales durante cinco años calendario dentro de 250 km.
+- Comparación anual de los eventos ubicados dentro de 100 km.
 
 ### 7.4 Fuentes
 

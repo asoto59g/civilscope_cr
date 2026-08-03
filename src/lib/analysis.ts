@@ -1,6 +1,12 @@
 import "server-only";
 
 import { nearestProvince } from "@/lib/costa-rica";
+import {
+  emptyClimateHistory,
+  emptySeismicHistory,
+  loadClimateHistory,
+  loadSeismicHistory,
+} from "@/lib/history";
 import { readIgnDemGrid } from "@/lib/terrain-dem";
 import type {
   AnalysisRequest,
@@ -220,6 +226,7 @@ async function loadWeather({ lat, lng }: AnalysisRequest): Promise<WeatherAnalys
       "temperature_2m_max,temperature_2m_min,precipitation_sum,shortwave_radiation_sum,wind_speed_10m_max",
     timezone: "America/Costa_Rica",
     forecast_days: "7",
+    models: "ecmwf_ifs",
   });
   const payload = await fetchJson<OpenMeteoResponse>(
     `https://api.open-meteo.com/v1/forecast?${params}`,
@@ -469,28 +476,40 @@ function ignSource(terrain: TerrainAnalysis): DataSource {
 }
 
 export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisResult> {
-  const [terrainResult, weatherResult, energyResult, seismicResult] =
+  const [terrainResult, weatherResult, climateHistoryResult, energyResult, seismicResult, seismicHistoryResult] =
     await Promise.allSettled([
       loadTerrain(request),
       loadWeather(request),
+      loadClimateHistory(request),
       loadEnergy(request),
       loadSeismic(request),
+      loadSeismicHistory(request),
     ]);
 
   const terrain =
     terrainResult.status === "fulfilled" ? terrainResult.value : unavailableTerrain();
   const weather =
     weatherResult.status === "fulfilled" ? weatherResult.value : unavailableWeather();
+  const climateHistory =
+    climateHistoryResult.status === "fulfilled"
+      ? climateHistoryResult.value
+      : emptyClimateHistory();
   const energy =
     energyResult.status === "fulfilled" ? energyResult.value : unavailableEnergy();
   const seismic =
     seismicResult.status === "fulfilled" ? seismicResult.value : unavailableSeismic();
+  const seismicHistory =
+    seismicHistoryResult.status === "fulfilled"
+      ? seismicHistoryResult.value
+      : emptySeismicHistory();
   const warnings: string[] = [];
 
   if (terrainResult.status === "rejected") warnings.push("Elevación no disponible temporalmente.");
   if (weatherResult.status === "rejected") warnings.push("Pronóstico no disponible temporalmente.");
+  if (climateHistoryResult.status === "rejected") warnings.push("Histórico climático no disponible temporalmente.");
   if (energyResult.status === "rejected") warnings.push("Serie NASA POWER no disponible temporalmente.");
   if (seismicResult.status === "rejected") warnings.push("Catálogo USGS no disponible temporalmente.");
+  if (seismicHistoryResult.status === "rejected") warnings.push("Histórico sísmico no disponible temporalmente.");
   if (
     terrainResult.status === "fulfilled" &&
     terrain.sourceName === FALLBACK_TERRAIN_SOURCE
@@ -510,8 +529,10 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
     },
     terrain,
     weather,
+    climateHistory,
     energy,
     seismic,
+    seismicHistory,
     assessment: buildAssessment(terrain, weather),
     sources: [
       ignSource(terrain),
@@ -527,11 +548,18 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
           ]
         : []),
       source(
-        "Pronóstico meteorológico",
-        "Open-Meteo",
+        "Pronóstico ECMWF IFS HRES",
+        "ECMWF / Open-Meteo",
         weatherResult,
-        "Temperatura, viento, precipitación, radiación y humedad del suelo.",
-        "https://open-meteo.com/en/docs",
+        "Modelo ECMWF IFS HRES de 9 km para temperatura, viento, precipitación, radiación y humedad del suelo.",
+        "https://open-meteo.com/en/docs/ecmwf-api",
+      ),
+      source(
+        "Histórico climático ERA5-Land",
+        "Open-Meteo / Copernicus",
+        climateHistoryResult,
+        "Reanálisis diario agregado en 24 meses de temperatura, precipitación, viento y radiación.",
+        "https://open-meteo.com/en/docs/historical-weather-api",
       ),
       source(
         "POWER Daily",
@@ -547,14 +575,13 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
         "Eventos M2.5+ en 250 km durante los últimos 12 meses.",
         "https://earthquake.usgs.gov/fdsnws/event/1/",
       ),
-      {
-        name: "ERA5",
-        provider: "Copernicus Climate Change Service",
-        status: "requires-credentials",
-        detail:
-          "Fuente histórica preparada para integración institucional; requiere token CDS y aceptación de términos.",
-        url: "https://cds.climate.copernicus.eu/how-to-api",
-      },
+      source(
+        "Tendencia sísmica de 5 años",
+        "USGS",
+        seismicHistoryResult,
+        "Conteos anuales de eventos M2.5+ dentro de 250 km y 100 km.",
+        "https://earthquake.usgs.gov/fdsnws/event/1/",
+      ),
     ],
     warnings,
     disclaimer:
