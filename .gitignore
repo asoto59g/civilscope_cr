@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Official national DEM provisioned separately (5.2 GB)
+/MDE_5K.tif
+/MDE_5K.tif.aux.xml
+/MDE_5K_COG.tif
+
+# Local reference material, not required by the deployed application
+/Vista.mp4
