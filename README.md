@@ -6,7 +6,7 @@ Plataforma pública y gratuita de prefactibilidad territorial para Costa Rica. I
 
 - [Manual de uso de Civilscope CR](docs/MANUAL_DE_USO.md)
 - [Guía de publicación en GitHub y Vercel](docs/GUIA_DESPLIEGUE_GITHUB_VERCEL.md)
-- [Análisis visual del video Vista, minutos 0:50–1:50](docs/ANALISIS_VIDEO_VISTA.md)
+
 
 ## Capacidades incluidas
 
