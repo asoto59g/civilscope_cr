@@ -7,6 +7,11 @@ import {
   loadClimateHistory,
   loadSeismicHistory,
 } from "@/lib/history";
+import {
+  emptyLandValue,
+  HACIENDA_LAND_VALUE_URL,
+  loadLandValue,
+} from "@/lib/land-value";
 import { readIgnDemGrid } from "@/lib/terrain-dem";
 import type {
   AnalysisRequest,
@@ -492,12 +497,13 @@ function ignSource(terrain: TerrainAnalysis): DataSource {
 }
 
 export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisResult> {
-  const [terrainResult, weatherResult, climateHistoryResult, energyResult, seismicResult, seismicHistoryResult] =
+  const [terrainResult, weatherResult, climateHistoryResult, energyResult, landValueResult, seismicResult, seismicHistoryResult] =
     await Promise.allSettled([
       loadTerrain(request),
       loadWeather(request),
       loadClimateHistory(request),
       loadEnergy(request),
+      loadLandValue(request),
       loadSeismic(request),
       loadSeismicHistory(request),
     ]);
@@ -512,6 +518,10 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
       : emptyClimateHistory();
   const energy =
     energyResult.status === "fulfilled" ? energyResult.value : unavailableEnergy();
+  const landValue =
+    landValueResult.status === "fulfilled"
+      ? landValueResult.value
+      : emptyLandValue();
   const seismic =
     seismicResult.status === "fulfilled" ? seismicResult.value : unavailableSeismic();
   const seismicHistory =
@@ -532,6 +542,7 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
     !climateHistory.chirpsAvailable
   ) warnings.push("Histórico de precipitación CHIRPS no disponible temporalmente.");
   if (energyResult.status === "rejected") warnings.push("Serie NASA POWER no disponible temporalmente.");
+  if (landValueResult.status === "rejected") warnings.push("Valor fiscal de Hacienda no disponible temporalmente.");
   if (seismicResult.status === "rejected") warnings.push("Catálogo USGS no disponible temporalmente.");
   if (seismicHistoryResult.status === "rejected") warnings.push("Histórico sísmico no disponible temporalmente.");
   if (
@@ -555,6 +566,7 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
     weather,
     climateHistory,
     energy,
+    landValue,
     seismic,
     seismicHistory,
     assessment: buildAssessment(terrain, weather),
@@ -600,6 +612,13 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
         "https://power.larc.nasa.gov/docs/services/api/temporal/daily/",
       ),
       source(
+        "Zonas Homogéneas ONT",
+        "Ministerio de Hacienda / Órgano de Normalización Técnica",
+        landValueResult,
+        "Valor fiscal de referencia del terreno en colones por metro cuadrado para la zona homogénea que contiene el punto.",
+        HACIENDA_LAND_VALUE_URL,
+      ),
+      source(
         "Earthquake Catalog",
         "USGS",
         seismicResult,
@@ -616,7 +635,7 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
     ],
     warnings,
     disclaimer:
-      "Análisis público de prefactibilidad basado en fuentes nacionales y globales. No sustituye levantamiento topográfico, estudio geotécnico, hidrológico, ambiental ni criterio profesional responsable.",
+      "Análisis público de prefactibilidad basado en fuentes nacionales y globales. El valor fiscal es una referencia zonal y no constituye avalúo individual ni precio comercial. No sustituye levantamiento topográfico, estudio geotécnico, hidrológico, ambiental ni criterio profesional responsable.",
   };
 }
 

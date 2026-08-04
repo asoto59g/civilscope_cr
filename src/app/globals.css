@@ -355,6 +355,17 @@ button:focus-visible, input:focus-visible, a:focus-visible {
 .panel-heading { align-items: flex-start; display: flex; justify-content: space-between; margin-bottom: 16px; }
 .panel-kicker { color: var(--muted); font-size: 8px; font-weight: 650; letter-spacing: .12em; text-transform: uppercase; }
 .panel h3 { font-size: 14px; letter-spacing: -.02em; margin: 4px 0 0; }
+.land-value-panel { grid-column: 1 / -1; }
+.land-value-icon { color: var(--amber); }
+.land-value-layout { display: grid; gap: 11px; grid-template-columns: minmax(190px, .75fr) minmax(0, 1.5fr); }
+.land-value-primary { background: rgba(255,202,115,.055); border: 1px solid rgba(255,202,115,.13); border-radius: 9px; display: grid; padding: 14px; }
+.land-value-primary span, .land-value-details span { color: var(--muted); font-size: 8px; text-transform: uppercase; }
+.land-value-primary strong { color: #f2d39d; font-size: 24px; letter-spacing: -.04em; margin-top: 7px; }
+.land-value-primary small { color: var(--muted); font-size: 8px; margin-top: 3px; }
+.land-value-details { display: grid; gap: 7px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.land-value-details > div { background: rgba(255,255,255,.025); border: 1px solid var(--line); border-radius: 8px; display: grid; padding: 11px; }
+.land-value-details strong { font-size: 10px; line-height: 1.35; margin-top: 6px; overflow-wrap: anywhere; }
+.land-value-note { border-top: 1px solid var(--line); color: var(--muted); font-size: 8px; line-height: 1.5; margin: 12px 0 0; padding-top: 10px; }
 .resolution-badge { background: rgba(120,191,255,.08); border-radius: 999px; color: var(--blue); font-size: 8px; padding: 5px 7px; }
 .accent-icon { color: var(--accent); }
 .terrain-grid { display: grid; gap: 4px; grid-template-columns: repeat(3, 1fr); }
@@ -549,6 +560,7 @@ button:focus-visible, input:focus-visible, a:focus-visible {
   .historical-variable-grid { grid-template-columns: 1fr; }
   .historical-variable-panel-wide { grid-column: auto; }
   .historical-variable-panel:last-child { grid-column: auto; }
+  .land-value-layout, .land-value-details { grid-template-columns: 1fr; }
   .source-intro { grid-template-columns: 42px 1fr; }
   .source-intro button { grid-column: 1 / -1; justify-content: center; }
 }

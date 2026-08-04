@@ -99,6 +99,18 @@ export type EnergyAnalysis = {
   period: string;
 };
 
+export type LandValueAnalysis = {
+  available: boolean;
+  valueCrcM2: number | null;
+  zoneCode: string | null;
+  zoneName: string | null;
+  landUseCode: string | null;
+  territorialCode: string | null;
+  provinceCode: string | null;
+  cantonCode: string | null;
+  districtCode: string | null;
+};
+
 export type SeismicEvent = {
   id: string;
   magnitude: number | null;
@@ -153,6 +165,7 @@ export type AnalysisResult = {
   weather: WeatherAnalysis;
   climateHistory: ClimateHistoryAnalysis;
   energy: EnergyAnalysis;
+  landValue: LandValueAnalysis;
   seismic: SeismicAnalysis;
   seismicHistory: SeismicHistoryAnalysis;
   assessment: SiteAssessment;

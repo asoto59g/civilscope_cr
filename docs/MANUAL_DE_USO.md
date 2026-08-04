@@ -4,7 +4,7 @@
 
 Civilscope CR es una plataforma pública, gratuita e independiente para realizar análisis preliminares de sitios dentro de Costa Rica. No requiere registro, afiliación profesional.
 
-La plataforma integra información de terreno, clima, energía solar y actividad sísmica. Sus resultados son insumos de prefactibilidad y no sustituyen estudios técnicos de campo.
+La plataforma integra información de terreno, clima, energía solar, actividad sísmica y valores fiscales de referencia del terreno. Sus resultados son insumos de prefactibilidad y no sustituyen estudios técnicos de campo.
 
 ## 2. Acceso a la plataforma
 
@@ -117,8 +117,19 @@ Incluye:
 - Complejidad preliminar del terreno.
 - Condiciones meteorológicas actuales.
 - Rendimiento solar indicativo.
+- Valor fiscal de referencia por metro cuadrado, zona homogénea y tipo de uso publicados por el Ministerio de Hacienda.
 
 Las categorías **Bajo**, **Moderado** y **Alto** son señales de prefactibilidad, no dictámenes técnicos.
+
+#### Valor fiscal de referencia del terreno
+
+Civilscope consulta la capa **Zonas Homogéneas ONT** del Ministerio de Hacienda para identificar el polígono que contiene el punto seleccionado. Cuando existe información publicada, muestra:
+
+- Valor de referencia en colones por metro cuadrado.
+- Nombre y código oficial de la zona homogénea.
+- Código del tipo de uso.
+
+Este dato corresponde a la zona homogénea y no constituye un avalúo individual del inmueble ni una estimación del precio comercial. Las características específicas de un predio pueden modificar su valoración.
 
 ### 7.2 Clima y agua
 
@@ -178,7 +189,7 @@ Esta sección permite verificar la procedencia de cada grupo de datos.
 ### 8.2 Datos JSON
 
 1. Presione **JSON** o **Exportar datos**.
-2. El archivo descargado contiene la respuesta completa de la consulta, incluyendo coordenadas, malla de terreno, clima, energía, sismicidad, fuentes y advertencias.
+2. El archivo descargado contiene la respuesta completa de la consulta, incluyendo coordenadas, malla de terreno, clima, energía, valor fiscal de referencia, sismicidad, fuentes y advertencias.
 
 El identificador del archivo comienza con `CIVILSCOPE` y contiene la fecha de generación.
 
@@ -186,7 +197,7 @@ El identificador del archivo comienza con `CIVILSCOPE` y contiene la fecha de ge
 
 Si aparece el mensaje que indica que no se pudo leer el MDE IGN de 10 m, el análisis continúa con Copernicus DEM de 90 m. Revise siempre el nombre de la fuente mostrado debajo de **Elevación** y la resolución indicada en la malla.
 
-Una falla parcial de clima, NASA POWER o USGS no invalida automáticamente los datos que sí fueron obtenidos. La advertencia identifica qué información falta.
+Una falla parcial de clima, NASA POWER, Hacienda o USGS no invalida automáticamente los datos que sí fueron obtenidos. La advertencia identifica qué información falta.
 
 ## 10. Privacidad y uso público
 
@@ -236,6 +247,7 @@ Civilscope CR facilita una revisión inicial del sitio. No sustituye:
 - Estudio hidrológico e hidráulico.
 - Evaluación ambiental.
 - Consulta catastral o normativa.
+- Avalúo fiscal individual o estimación del precio comercial.
 - Inspección de campo.
 - Diseño firmado por profesionales responsables.
 

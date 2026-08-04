@@ -18,6 +18,7 @@ import {
   FileText,
   Gauge,
   Layers3,
+  Landmark,
   LocateFixed,
   MapPin,
   Menu,
@@ -89,6 +90,15 @@ async function requestAnalysis(
 function number(value: number | null | undefined, suffix = "", digits = 1) {
   if (value === null || value === undefined) return "—";
   return `${new Intl.NumberFormat("es-CR", { maximumFractionDigits: digits }).format(value)}${suffix}`;
+}
+
+function colonesPerM2(value: number | null | undefined) {
+  if (value === null || value === undefined) return "—";
+  return (
+    "₡" +
+    new Intl.NumberFormat("es-CR", { maximumFractionDigits: 0 }).format(value) +
+    "/m²"
+  );
 }
 
 function date(value: string, options?: Intl.DateTimeFormatOptions) {
@@ -400,6 +410,57 @@ function TerrainGrid({ values }: { values: Array<number | null> }) {
   );
 }
 
+function LandValuePanel({
+  value,
+}: {
+  value: AnalysisResult["landValue"];
+}) {
+  return (
+    <article className="panel land-value-panel">
+      <div className="panel-heading">
+        <div>
+          <span className="panel-kicker">Ministerio de Hacienda · ONT</span>
+          <h3>Valor fiscal de referencia del terreno</h3>
+        </div>
+        <Landmark size={20} className="land-value-icon" />
+      </div>
+      {value.available ? (
+        <>
+          <div className="land-value-layout">
+            <div className="land-value-primary">
+              <span>Valor de la zona</span>
+              <strong>{colonesPerM2(value.valueCrcM2)}</strong>
+              <small>Colones por metro cuadrado</small>
+            </div>
+            <div className="land-value-details">
+              <div>
+                <span>Zona homogénea</span>
+                <strong>{value.zoneName ?? "Sin nombre"}</strong>
+              </div>
+              <div>
+                <span>Código oficial</span>
+                <strong>{value.territorialCode ?? value.zoneCode ?? "—"}</strong>
+              </div>
+              <div>
+                <span>Tipo de uso</span>
+                <strong>{value.landUseCode ?? "No indicado"}</strong>
+              </div>
+            </div>
+          </div>
+          <p className="land-value-note">
+            Es un valor fiscal de referencia para la zona homogénea. No
+            representa el precio comercial ni un avalúo individual del predio.
+          </p>
+        </>
+      ) : (
+        <div className="empty-panel">
+          No se encontró una zona homogénea publicada para este punto.
+        </div>
+      )}
+    </article>
+  );
+}
+
 function SourceCard({ source }: { source: DataSource }) {
   const label = source.status === "live" ? "En vivo" : source.status === "requires-credentials" ? "Requiere acceso" : "No disponible";
   return (
@@ -513,6 +574,7 @@ export function Dashboard() {
       ["Radiación solar", number(result.energy.solarRadiationKwhM2Day, " kWh/m²/día", 2)], ["Lluvia 7 días", number(result.weather.precipitation7dMm, " mm")],
       ["Sismos M2.5+", String(result.seismic.eventsLastYear)], ["Riesgo drenaje", result.assessment.drainageRisk],
       ["Promedio anual CHIRPS", number(result.climateHistory.annualAveragePrecipitationMm, " mm", 0)], ["Sismos en 5 años", String(result.seismicHistory.totalEvents)],
+      ["Valor fiscal de referencia", number(result.landValue.valueCrcM2, " CRC/m²", 0)], ["Zona homogénea", result.landValue.territorialCode ?? "Sin datos"],
     ];
     const metricRows = Math.ceil(metrics.length / 2);
     metrics.forEach(([label, value], index) => {
@@ -579,6 +641,7 @@ export function Dashboard() {
             <div className="tabs-row" role="tablist" aria-label="Secciones">{([["overview", "Resumen", Gauge], ["climate", "Clima y agua", CloudRain], ["seismic", "Sismicidad", Activity], ["sources", "Fuentes", Database]] as const).map(([id, label, Icon]) => <button key={id} type="button" role="tab" aria-selected={activeTab === id} className={activeTab === id ? "active" : ""} onClick={() => setActiveTab(id)}><Icon size={16} /> {label}</button>)}</div>
 
             {result && activeTab === "overview" && <div className="tab-panel overview-layout" role="tabpanel">
+              <LandValuePanel value={result.landValue} />
               <article className="panel terrain-panel"><div className="panel-heading"><div><span className="panel-kicker">Terreno · {result.terrain.sourceName}</span><h3>Malla de elevación</h3></div><span className="resolution-badge">{result.terrain.resolutionM} m/píxel</span></div><TerrainGrid values={result.terrain.gridM} /><div className="terrain-details"><div><span>Relieve local</span><strong>{number(result.terrain.reliefM, " m", 0)}</strong></div><div><span>Orientación</span><strong>{result.terrain.aspectLabel} · {number(result.terrain.aspectDeg, "°", 0)}</strong></div></div></article>
               <article className="panel assessment-panel"><div className="panel-heading"><div><span className="panel-kicker">Criterio preliminar</span><h3>Lectura para prefactibilidad</h3></div><BadgeCheck size={20} className="accent-icon" /></div><div className="risk-row"><div><span>Riesgo de drenaje</span><strong className={`risk-badge risk-${riskTone(result.assessment.drainageRisk)}`}>{result.assessment.drainageRisk}</strong></div><div><span>Complejidad del terreno</span><strong className={`risk-badge risk-${riskTone(result.assessment.terrainSuitability)}`}>{result.assessment.terrainSuitability}</strong></div></div><ul className="assessment-notes">{result.assessment.notes.map((note) => <li key={note}><Check size={14} /><span>{note}</span></li>)}</ul></article>
               <article className="panel current-panel"><div className="panel-heading"><div><span className="panel-kicker">Condición actual</span><h3>Clima del sitio</h3></div><Radio size={18} className="accent-icon" /></div><div className="current-weather-grid"><div><Thermometer size={18} /><span>Temperatura</span><strong>{number(result.weather.temperatureC, " °C")}</strong></div><div><Wind size={18} /><span>Viento</span><strong>{number(result.weather.windSpeedKmh, " km/h")}</strong></div><div><Droplets size={18} /><span>Humedad suelo</span><strong>{number(result.weather.soilMoisturePct, "%")}</strong></div><div><CloudRain size={18} /><span>Lluvia 7 días</span><strong>{number(result.weather.precipitation7dMm, " mm")}</strong></div></div></article>
