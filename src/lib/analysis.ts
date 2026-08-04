@@ -17,6 +17,11 @@ import {
   HACIENDA_LAND_VALUE_URL,
   loadLandValue,
 } from "@/lib/land-value";
+import {
+  emptyLandCover,
+  loadLandCover,
+  SINIA_MAF2020_WMS_URL,
+} from "@/lib/land-cover";
 import { readIgnDemGrid } from "@/lib/terrain-dem";
 import type {
   AnalysisRequest,
@@ -509,6 +514,7 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
     energyResult,
     landValueResult,
     cadastreResult,
+    landCoverResult,
     seismicResult,
     seismicHistoryResult,
   ] = await Promise.allSettled([
@@ -518,6 +524,7 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
     loadEnergy(request),
     loadLandValue(request),
     loadCadastre(request),
+    loadLandCover(request),
     loadSeismic(request),
     loadSeismicHistory(request),
   ]);
@@ -540,6 +547,10 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
     cadastreResult.status === "fulfilled"
       ? cadastreResult.value
       : emptyCadastre();
+  const landCover =
+    landCoverResult.status === "fulfilled"
+      ? landCoverResult.value
+      : emptyLandCover();
   const seismic =
     seismicResult.status === "fulfilled" ? seismicResult.value : unavailableSeismic();
   const seismicHistory =
@@ -562,6 +573,7 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
   if (energyResult.status === "rejected") warnings.push("Serie NASA POWER no disponible temporalmente.");
   if (landValueResult.status === "rejected") warnings.push("Valor fiscal de Hacienda no disponible temporalmente.");
   if (cadastreResult.status === "rejected") warnings.push("Información catastral del SNIT no disponible temporalmente.");
+  if (landCoverResult.status === "rejected") warnings.push("Clasificación MAF2020 del SINIA no disponible temporalmente.");
   if (seismicResult.status === "rejected") warnings.push("Catálogo USGS no disponible temporalmente.");
   if (seismicHistoryResult.status === "rejected") warnings.push("Histórico sísmico no disponible temporalmente.");
   if (
@@ -587,6 +599,7 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
     energy,
     landValue,
     cadastre,
+    landCover,
     seismic,
     seismicHistory,
     assessment: buildAssessment(terrain, weather),
@@ -646,6 +659,14 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
         CADASTRE_WMS_URL + "?service=WMS&request=GetCapabilities",
       ),
       source(
+        "Mapa agropecuario y forestal 2020",
+        "MINAE / MAG / SINIA",
+        landCoverResult,
+        "Categoría de cobertura del punto en el mapa nacional de 2020 con resolución de 10 m.",
+        SINIA_MAF2020_WMS_URL +
+          "?service=WMS&version=1.3.0&request=GetCapabilities",
+      ),
+      source(
         "Earthquake Catalog",
         "USGS",
         seismicResult,
@@ -662,7 +683,7 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
     ],
     warnings,
     disclaimer:
-      "Análisis público de prefactibilidad basado en fuentes nacionales y globales. El valor fiscal es una referencia zonal y la información catastral es indicativa; no constituyen avalúo, precio comercial ni certificación registral. No sustituye levantamiento topográfico, estudio geotécnico, hidrológico, ambiental ni criterio profesional responsable.",
+      "Análisis público de prefactibilidad basado en fuentes nacionales y globales. El valor fiscal es una referencia zonal, la información catastral es indicativa y MAF2020 representa la cobertura observada en 2020; no constituyen avalúo, precio comercial, certificación registral ni zonificación legal vigente. No sustituye levantamiento topográfico, estudio geotécnico, hidrológico, ambiental ni criterio profesional responsable.",
   };
 }
 

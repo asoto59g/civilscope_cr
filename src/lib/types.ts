@@ -133,6 +133,14 @@ export type CadastreAnalysis = {
   matches: CadastreParcel[];
 };
 
+export type LandCoverAnalysis = {
+  available: boolean;
+  category: string | null;
+  classCode: number | null;
+  referenceYear: number;
+  resolutionM: number;
+};
+
 export type SeismicEvent = {
   id: string;
   magnitude: number | null;
@@ -189,6 +197,7 @@ export type AnalysisResult = {
   energy: EnergyAnalysis;
   landValue: LandValueAnalysis;
   cadastre: CadastreAnalysis;
+  landCover: LandCoverAnalysis;
   seismic: SeismicAnalysis;
   seismicHistory: SeismicHistoryAnalysis;
   assessment: SiteAssessment;

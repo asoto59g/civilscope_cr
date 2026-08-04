@@ -4,7 +4,7 @@
 
 Civilscope CR es una plataforma pública, gratuita e independiente para realizar análisis preliminares de sitios dentro de Costa Rica. No requiere registro, afiliación profesional.
 
-La plataforma integra información de terreno, clima, energía solar, actividad sísmica, valores fiscales de referencia e información catastral pública del punto. Sus resultados son insumos de prefactibilidad y no sustituyen estudios técnicos de campo.
+La plataforma integra información de terreno, clima, energía solar, actividad sísmica, valores fiscales de referencia, información catastral y cobertura agropecuaria o forestal pública del punto. Sus resultados son insumos de prefactibilidad y no sustituyen estudios técnicos de campo.
 
 ## 2. Acceso a la plataforma
 
@@ -119,6 +119,7 @@ Incluye:
 - Rendimiento solar indicativo.
 - Valor fiscal de referencia por metro cuadrado, zona homogénea y tipo de uso publicados por el Ministerio de Hacienda.
 - Plano catastrado, finca, identificador inmobiliario y zona publicados por el Registro Inmobiliario mediante SNIT.
+- Categoría de cobertura del Mapa Agropecuario y Forestal 2020 publicado por SINIA.
 
 Las categorías **Bajo**, **Moderado** y **Alto** son señales de prefactibilidad, no dictámenes técnicos.
 
@@ -144,6 +145,17 @@ Civilscope consulta mediante `GetFeatureInfo` las capas **Zona 1** y **Zona 2** 
 Si el atributo `plano` no contiene un valor, la plataforma muestra **No publicado** sin inventar ni inferir un número. Si el punto coincide con varios registros, muestra todos y advierte que puede encontrarse sobre un límite catastral.
 
 La consulta se ejecuta solamente al presionar **Analizar sitio** y utiliza caché para reducir el consumo del WMS. La información es indicativa y no sustituye una certificación registral ni un plano certificado.
+
+#### Cobertura agropecuaria y forestal 2020
+
+Civilscope consulta mediante `GetFeatureInfo` la capa **MAF2020** publicada por SINIA. Para el punto seleccionado muestra:
+
+- La categoría de cobertura, por ejemplo cultivo, pasto, bosque o zona urbana, según el valor publicado.
+- El código numérico de la clase.
+- El año de referencia 2020.
+- La resolución de 10 m.
+
+La consulta solicita únicamente los atributos `CATEGORIA` y `value`, sin descargar la geometría completa. El resultado representa la cobertura identificada para 2020; no determina el uso actual, la aptitud agrícola, la zonificación legal ni los permisos aplicables al terreno.
 
 ### 7.2 Clima y agua
 
@@ -203,7 +215,7 @@ Esta sección permite verificar la procedencia de cada grupo de datos.
 ### 8.2 Datos JSON
 
 1. Presione **JSON** o **Exportar datos**.
-2. El archivo descargado contiene la respuesta completa de la consulta, incluyendo coordenadas, malla de terreno, clima, energía, valor fiscal de referencia, información catastral, sismicidad, fuentes y advertencias.
+2. El archivo descargado contiene la respuesta completa de la consulta, incluyendo coordenadas, malla de terreno, clima, energía, valor fiscal de referencia, información catastral, cobertura MAF2020, sismicidad, fuentes y advertencias.
 
 El identificador del archivo comienza con `CIVILSCOPE` y contiene la fecha de generación.
 
@@ -211,7 +223,7 @@ El identificador del archivo comienza con `CIVILSCOPE` y contiene la fecha de ge
 
 Si aparece el mensaje que indica que no se pudo leer el MDE IGN de 10 m, el análisis continúa con Copernicus DEM de 90 m. Revise siempre el nombre de la fuente mostrado debajo de **Elevación** y la resolución indicada en la malla.
 
-Una falla parcial de clima, NASA POWER, Hacienda, SNIT catastral o USGS no invalida automáticamente los datos que sí fueron obtenidos. La advertencia identifica qué información falta.
+Una falla parcial de clima, NASA POWER, Hacienda, SNIT catastral, SINIA MAF2020 o USGS no invalida automáticamente los datos que sí fueron obtenidos. La advertencia identifica qué información falta.
 
 ## 10. Privacidad y uso público
 
@@ -259,6 +271,12 @@ Una falla parcial de clima, NASA POWER, Hacienda, SNIT catastral o USGS no inval
 - Algunos registros publican finca e identificador, pero no el atributo de plano; en ese caso se muestra **No publicado**.
 - Si el servicio limita temporalmente las consultas, espere unos minutos y vuelva a analizar.
 
+### No aparece una categoría MAF2020
+
+- Confirme en la pestaña **Fuentes** que el Mapa Agropecuario y Forestal 2020 esté activo.
+- El punto puede estar fuera de la cobertura publicada o sobre una celda sin clasificación.
+- Si el WMS de SINIA no responde, espere unos minutos y vuelva a analizar.
+
 ## 12. Alcance técnico
 
 Civilscope CR facilita una revisión inicial del sitio. No sustituye:
@@ -269,6 +287,7 @@ Civilscope CR facilita una revisión inicial del sitio. No sustituye:
 - Evaluación ambiental.
 - Certificación catastral, registral o normativa.
 - Plano catastrado certificado.
+- Determinación del uso actual, aptitud agrícola o zonificación legal a partir de MAF2020.
 - Avalúo fiscal individual o estimación del precio comercial.
 - Inspección de campo.
 - Diseño firmado por profesionales responsables.

@@ -28,6 +28,7 @@ import {
   Satellite,
   Search,
   ShieldCheck,
+  Sprout,
   Sun,
   Thermometer,
   Waves,
@@ -538,6 +539,57 @@ function CadastrePanel({
   );
 }
 
+function LandCoverPanel({
+  cover,
+}: {
+  cover: AnalysisResult["landCover"];
+}) {
+  return (
+    <article className="panel land-cover-panel">
+      <div className="panel-heading">
+        <div>
+          <span className="panel-kicker">MINAE · MAG · SINIA</span>
+          <h3>Mapa agropecuario y forestal 2020</h3>
+        </div>
+        <Sprout size={20} className="land-cover-icon" />
+      </div>
+      {cover.available ? (
+        <>
+          <div className="land-cover-layout">
+            <div className="land-cover-category">
+              <span>Categoría del punto</span>
+              <strong>{cover.category}</strong>
+              <small>Clasificación MAF2020</small>
+            </div>
+            <div className="land-cover-details">
+              <div>
+                <span>Año de referencia</span>
+                <strong>{cover.referenceYear}</strong>
+              </div>
+              <div>
+                <span>Resolución</span>
+                <strong>{cover.resolutionM} m</strong>
+              </div>
+              <div>
+                <span>Código de clase</span>
+                <strong>{cover.classCode ?? "No publicado"}</strong>
+              </div>
+            </div>
+          </div>
+          <p className="land-cover-note">
+            Describe la cobertura observada para 2020. No determina el uso
+            actual, la aptitud agrícola ni la zonificación legal del terreno.
+          </p>
+        </>
+      ) : (
+        <div className="empty-panel">
+          No se encontró una categoría MAF2020 publicada para este punto.
+        </div>
+      )}
+    </article>
+  );
+}
+
 function SourceCard({ source }: { source: DataSource }) {
   const label = source.status === "live" ? "En vivo" : source.status === "requires-credentials" ? "Requiere acceso" : "No disponible";
   return (
@@ -654,13 +706,15 @@ export function Dashboard() {
       ["Promedio anual CHIRPS", number(result.climateHistory.annualAveragePrecipitationMm, " mm", 0)], ["Sismos en 5 años", String(result.seismicHistory.totalEvents)],
       ["Valor fiscal de referencia", number(result.landValue.valueCrcM2, " CRC/m²", 0)], ["Zona homogénea", result.landValue.territorialCode ?? "Sin datos"],
       ["Plano catastrado", primaryCadastre?.planNumber ?? "No publicado"], ["Finca", primaryCadastre ? `${primaryCadastre.zone} · ${primaryCadastre.propertyNumber ?? "Sin dato"}` : "Sin coincidencia"],
+      ["Cobertura MAF2020", result.landCover.category ?? "Sin clasificación"],
     ];
     const metricRows = Math.ceil(metrics.length / 2);
     metrics.forEach(([label, value], index) => {
       const x = 18 + (index % 2) * 89; const rowY = y + Math.floor(index / 2) * 18;
       pdf.setDrawColor(224, 230, 228); pdf.roundedRect(x, rowY, 84, 14, 2, 2, "S");
       pdf.setFontSize(7); pdf.setTextColor(94, 105, 107); pdf.text(label.toUpperCase(), x + 4, rowY + 5);
-      pdf.setFontSize(10); pdf.setTextColor(20, 31, 34); pdf.setFont("helvetica", "bold"); pdf.text(value, x + 4, rowY + 11); pdf.setFont("helvetica", "normal");
+      const metricValue = value.length > 38 ? `${value.slice(0, 37)}…` : value;
+      pdf.setFontSize(10); pdf.setTextColor(20, 31, 34); pdf.setFont("helvetica", "bold"); pdf.text(metricValue, x + 4, rowY + 11); pdf.setFont("helvetica", "normal");
     });
     y += metricRows * 18 + 8; pdf.setFont("helvetica", "bold"); pdf.setFontSize(11); pdf.text("Lectura preliminar", 18, y); y += 7;
     pdf.setFont("helvetica", "normal"); pdf.setFontSize(9);
@@ -723,6 +777,7 @@ export function Dashboard() {
             {result && activeTab === "overview" && <div className="tab-panel overview-layout" role="tabpanel">
               <LandValuePanel value={result.landValue} />
               <CadastrePanel cadastre={result.cadastre} />
+              <LandCoverPanel cover={result.landCover} />
               <article className="panel terrain-panel"><div className="panel-heading"><div><span className="panel-kicker">Terreno · {result.terrain.sourceName}</span><h3>Malla de elevación</h3></div><span className="resolution-badge">{result.terrain.resolutionM} m/píxel</span></div><TerrainGrid values={result.terrain.gridM} /><div className="terrain-details"><div><span>Relieve local</span><strong>{number(result.terrain.reliefM, " m", 0)}</strong></div><div><span>Orientación</span><strong>{result.terrain.aspectLabel} · {number(result.terrain.aspectDeg, "°", 0)}</strong></div></div></article>
               <article className="panel assessment-panel"><div className="panel-heading"><div><span className="panel-kicker">Criterio preliminar</span><h3>Lectura para prefactibilidad</h3></div><BadgeCheck size={20} className="accent-icon" /></div><div className="risk-row"><div><span>Riesgo de drenaje</span><strong className={`risk-badge risk-${riskTone(result.assessment.drainageRisk)}`}>{result.assessment.drainageRisk}</strong></div><div><span>Complejidad del terreno</span><strong className={`risk-badge risk-${riskTone(result.assessment.terrainSuitability)}`}>{result.assessment.terrainSuitability}</strong></div></div><ul className="assessment-notes">{result.assessment.notes.map((note) => <li key={note}><Check size={14} /><span>{note}</span></li>)}</ul></article>
               <article className="panel current-panel"><div className="panel-heading"><div><span className="panel-kicker">Condición actual</span><h3>Clima del sitio</h3></div><Radio size={18} className="accent-icon" /></div><div className="current-weather-grid"><div><Thermometer size={18} /><span>Temperatura</span><strong>{number(result.weather.temperatureC, " °C")}</strong></div><div><Wind size={18} /><span>Viento</span><strong>{number(result.weather.windSpeedKmh, " km/h")}</strong></div><div><Droplets size={18} /><span>Humedad suelo</span><strong>{number(result.weather.soilMoisturePct, "%")}</strong></div><div><CloudRain size={18} /><span>Lluvia 7 días</span><strong>{number(result.weather.precipitation7dMm, " mm")}</strong></div></div></article>
@@ -750,7 +805,7 @@ export function Dashboard() {
             </div>}
 
             {result && activeTab === "sources" && <div className="tab-panel sources-layout" role="tabpanel">
-              <article className="panel source-intro"><div className="source-intro-icon"><Layers3 size={24} /></div><div><span className="panel-kicker">Trazabilidad</span><h3>Datos objetivos y verificables</h3><p>Cada indicador conserva su fuente. El MDE IGN aporta el terreno de 10 m, ERA5-Seamless y CHIRPS el clima, Hacienda el valor fiscal zonal y Registro Inmobiliario/SNIT la información catastral.</p></div><button type="button" onClick={downloadJson}><ArrowDownToLine size={16} /> Exportar datos</button></article>
+              <article className="panel source-intro"><div className="source-intro-icon"><Layers3 size={24} /></div><div><span className="panel-kicker">Trazabilidad</span><h3>Datos objetivos y verificables</h3><p>Cada indicador conserva su fuente. El MDE IGN aporta el terreno de 10 m, ERA5-Seamless y CHIRPS el clima, Hacienda el valor fiscal zonal, Registro Inmobiliario/SNIT el catastro y SINIA la cobertura agropecuaria y forestal de 2020.</p></div><button type="button" onClick={downloadJson}><ArrowDownToLine size={16} /> Exportar datos</button></article>
               <div className="source-list">{result.sources.map((item) => <SourceCard key={item.name} source={item} />)}</div>
               <div className="methodology-note"><CircleAlert size={17} /><div><strong>Alcance técnico</strong><p>{result.disclaimer}</p></div></div>
             </div>}
