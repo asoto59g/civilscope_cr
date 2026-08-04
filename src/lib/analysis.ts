@@ -463,6 +463,22 @@ function source(
   };
 }
 
+function availabilitySource(
+  name: string,
+  provider: string,
+  available: boolean,
+  detail: string,
+  url: string,
+): DataSource {
+  return {
+    name,
+    provider,
+    status: available ? "live" : "unavailable",
+    detail,
+    url,
+  };
+}
+
 function ignSource(terrain: TerrainAnalysis): DataSource {
   return {
     name: IGN_TERRAIN_SOURCE,
@@ -507,6 +523,14 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
   if (terrainResult.status === "rejected") warnings.push("Elevación no disponible temporalmente.");
   if (weatherResult.status === "rejected") warnings.push("Pronóstico no disponible temporalmente.");
   if (climateHistoryResult.status === "rejected") warnings.push("Histórico climático no disponible temporalmente.");
+  if (
+    climateHistoryResult.status === "fulfilled" &&
+    !climateHistory.era5Available
+  ) warnings.push("Histórico ERA5 no disponible temporalmente.");
+  if (
+    climateHistoryResult.status === "fulfilled" &&
+    !climateHistory.chirpsAvailable
+  ) warnings.push("Histórico de precipitación CHIRPS no disponible temporalmente.");
   if (energyResult.status === "rejected") warnings.push("Serie NASA POWER no disponible temporalmente.");
   if (seismicResult.status === "rejected") warnings.push("Catálogo USGS no disponible temporalmente.");
   if (seismicHistoryResult.status === "rejected") warnings.push("Histórico sísmico no disponible temporalmente.");
@@ -554,12 +578,19 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
         "Modelo ECMWF IFS HRES de 9 km para temperatura, viento, precipitación, radiación y humedad del suelo.",
         "https://open-meteo.com/en/docs/ecmwf-api",
       ),
-      source(
+      availabilitySource(
         "Histórico climático ERA5-Seamless",
         "Open-Meteo / Copernicus",
-        climateHistoryResult,
-        "Combina ERA5-Land para superficie y suelo con ERA5 para precipitación, viento y radiación durante 24 meses.",
+        climateHistory.era5Available,
+        "Temperatura, viento, radiación y humedad superficial durante 24 meses completos.",
         "https://open-meteo.com/en/docs/historical-weather-api",
+      ),
+      availabilitySource(
+        "Histórico de precipitación CHIRPS v2.0",
+        "UCSB Climate Hazards Center / ClimateSERV",
+        climateHistory.chirpsAvailable,
+        "Precipitación diaria de 0,05° para climatologías mensuales y diarias de diez años completos.",
+        "https://developers.google.com/earth-engine/datasets/catalog/UCSB-CHG_CHIRPS_DAILY",
       ),
       source(
         "POWER Daily",

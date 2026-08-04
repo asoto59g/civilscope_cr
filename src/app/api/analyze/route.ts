@@ -3,7 +3,7 @@ import { analyzeSite } from "@/lib/analysis";
 import type { AnalysisRequest } from "@/lib/types";
 
 export const runtime = "nodejs";
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   const contentType = request.headers.get("content-type") ?? "";

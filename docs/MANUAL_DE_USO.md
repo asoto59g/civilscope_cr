@@ -132,14 +132,19 @@ El pronóstico utiliza explícitamente el modelo global ECMWF IFS HRES de 9 km, 
 - Radiación solar.
 - Humedad superficial estimada del suelo.
 
-Además incluye un histórico de los últimos 24 meses completos con:
+Además combina dos ventanas históricas:
 
-- Gráficas independientes para temperatura, precipitación, viento, radiación solar y humedad superficial del suelo.
-- Promedio, valor mínimo y valor máximo de cada variable durante el período.
-- Temperatura media del período, precipitación anualizada y mes más lluvioso.
-- Viento máximo diario medio, radiación solar media diaria y humedad del suelo entre 0 y 7 cm.
-- Consulta de cada mes al posicionar el puntero sobre los puntos o barras del gráfico.
-- Datos ERA5-Seamless: combina ERA5-Land para superficie y suelo con ERA5 para precipitación, viento y radiación. Son estimaciones de cuadrícula, no mediciones de una estación local.
+- **ERA5-Seamless, 24 meses completos:** temperatura media, viento máximo diario medio, radiación solar media diaria y humedad del suelo entre 0 y 7 cm.
+- **CHIRPS v2.0, diez años calendario completos:** precipitación diaria a 0,05°, aproximadamente 5,6 km, consultada alrededor de las coordenadas seleccionadas mediante ClimateSERV.
+
+Las gráficas CHIRPS muestran:
+
+- El acumulado promedio de cada mes, calculado promediando el total de ese mes en cada uno de los diez años.
+- El promedio de cada día del año, calculado con la misma fecha calendario en los diez años. El 29 de febrero se excluye para mantener una serie comparable de 365 días.
+- La precipitación anual promedio y el mes climatológicamente más lluvioso.
+- Promedio, valor mínimo y valor máximo de cada serie visible.
+
+CHIRPS combina estimaciones satelitales con observaciones de estaciones y tiene mayor detalle espacial que ERA5 para lluvia. Aun así, representa una celda de cuadrícula y no una medición de pluviómetro exactamente en el punto.
 
 ### 7.3 Sismicidad
 

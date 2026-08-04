@@ -47,6 +47,8 @@ import type {
   ClimateHistoryAnalysis,
   ClimateMonthRecord,
   DataSource,
+  PrecipitationDayAverage,
+  PrecipitationMonthAverage,
   ForecastDay,
   RiskLevel,
   SeismicHistoryAnalysis,
@@ -122,25 +124,39 @@ function ForecastChart({ forecast }: { forecast: ForecastDay[] }) {
   );
 }
 
+function monthName(month: number, style: "short" | "long" = "long") {
+  return date(
+    `2001-${String(month).padStart(2, "0")}-15T12:00:00Z`,
+    { month: style },
+  );
+}
+
 function ClimateHistorySummary({ history }: { history: ClimateHistoryAnalysis }) {
-  if (!history.months.length) {
+  if (!history.months.length && !history.precipitationMonthlyAverage.length) {
     return <div className="empty-panel">No hay histórico climático disponible.</div>;
   }
   return (
     <>
       <div className="history-stats">
         <div><span>Temperatura media</span><strong>{number(history.temperatureMeanC, " °C")}</strong></div>
-        <div><span>Precipitación anualizada</span><strong>{number(history.annualizedPrecipitationMm, " mm", 0)}</strong></div>
-        <div><span>Mes más lluvioso</span><strong>{history.wettestMonth ? date(`${history.wettestMonth}-15T12:00:00`, { month: "short", year: "numeric" }) : "—"}</strong></div>
+        <div><span>Promedio anual CHIRPS</span><strong>{number(history.annualAveragePrecipitationMm, " mm", 0)}</strong></div>
+        <div><span>Mes más lluvioso</span><strong>{history.wettestMonth ? monthName(history.wettestMonth) : "—"}</strong></div>
       </div>
-      <p className="history-caption">{history.model} · {history.periodStart} a {history.periodEnd}. Reanálisis climático, no medición de estación.</p>
+      <p className="history-caption">
+        {history.era5Available
+          ? `${history.model} · ${history.periodStart} a ${history.periodEnd}. `
+          : "ERA5-Seamless no disponible. "}
+        {history.chirpsAvailable
+          ? `${history.precipitationModel} · ${history.precipitationPeriodStart} a ${history.precipitationPeriodEnd} (${history.precipitationYears} años).`
+          : "CHIRPS no disponible."}
+        {" "}Datos de cuadrícula, no mediciones de una estación puntual.
+      </p>
     </>
   );
 }
 
 type ClimateSeriesField =
   | "temperatureMeanC"
-  | "precipitationMm"
   | "windMaxAverageKmh"
   | "solarRadiationAverageMjM2"
   | "soilMoistureAveragePct";
@@ -221,6 +237,103 @@ function HistoricalSeriesChart({
           }) : points.map((point) => <circle className="historical-series-point" key={point.month} cx={point.x} cy={point.y} r="3"><title>{date(`${point.month}-15T12:00:00`, { month: "long", year: "numeric" })}: {number(point.value, unit, digits)}</title></circle>)}
           <g className="historical-series-axis">
             {months.map((month, index) => labelIndexes.has(index) ? <text key={month.month} x={xFor(index)} y="169" textAnchor="middle">{date(`${month.month}-15T12:00:00`, { month: "short", year: "2-digit" })}</text> : null)}
+          </g>
+        </svg>
+      </div>
+    </>
+  );
+}
+
+function PrecipitationClimatologyChart({
+  monthly,
+  daily,
+}: {
+  monthly?: PrecipitationMonthAverage[];
+  daily?: PrecipitationDayAverage[];
+}) {
+  const isDaily = Boolean(daily?.length);
+  const points = isDaily
+    ? (daily ?? []).map((record) => ({
+        key: `day-${record.dayOfYear}`,
+        label: date(
+          `2001-${String(record.month).padStart(2, "0")}-${String(record.day).padStart(2, "0")}T12:00:00Z`,
+          { day: "numeric", month: "long" },
+        ),
+        axisLabel: monthName(record.month, "short"),
+        isAxisLabel: record.day === 1,
+        value: record.precipitationMm,
+        sampleYears: record.sampleYears,
+      }))
+    : (monthly ?? []).map((record) => ({
+        key: `month-${record.month}`,
+        label: monthName(record.month),
+        axisLabel: monthName(record.month, "short"),
+        isAxisLabel: true,
+        value: record.precipitationMm,
+        sampleYears: record.sampleYears,
+      }));
+  const values = points
+    .map((point) => point.value)
+    .filter((value): value is number => value !== null);
+
+  if (!values.length) {
+    return <div className="empty-panel">No hay datos CHIRPS disponibles.</div>;
+  }
+
+  const averageValue = values.reduce((total, value) => total + value, 0) / values.length;
+  const minimum = Math.min(...values);
+  const maximum = Math.max(...values);
+  const upperBound = Math.max(maximum * 1.12, 1);
+  const width = 640;
+  const plotTop = 14;
+  const plotBottom = 142;
+  const plotLeft = 18;
+  const plotRight = 622;
+  const plotHeight = plotBottom - plotTop;
+  const xFor = (index: number) =>
+    isDaily
+      ? plotLeft + (index / Math.max(points.length - 1, 1)) * (plotRight - plotLeft)
+      : plotLeft + ((index + 0.5) / points.length) * (plotRight - plotLeft);
+  const yFor = (value: number) =>
+    plotTop + (1 - value / upperBound) * plotHeight;
+  const plotted = points.flatMap((point, index) =>
+    point.value === null
+      ? []
+      : [{ ...point, x: xFor(index), y: yFor(point.value) }],
+  );
+  const linePoints = plotted.map((point) => `${point.x},${point.y}`).join(" ");
+  const areaPoints = plotted.length
+    ? `${plotted[0].x},${plotBottom} ${linePoints} ${plotted.at(-1)!.x},${plotBottom}`
+    : "";
+  const barWidth = Math.max(8, ((plotRight - plotLeft) / points.length) * 0.62);
+  const digits = isDaily ? 2 : 0;
+  const description = isDaily
+    ? "Precipitación CHIRPS promedio para cada día del año"
+    : "Precipitación CHIRPS acumulada promedio para cada mes";
+
+  return (
+    <>
+      <div className="series-metrics">
+        <div><span>{isDaily ? "Promedio diario" : "Promedio mensual"}</span><strong>{number(averageValue, " mm", digits)}</strong></div>
+        <div><span>Mínimo</span><strong>{number(minimum, " mm", digits)}</strong></div>
+        <div><span>Máximo</span><strong>{number(maximum, " mm", digits)}</strong></div>
+      </div>
+      <div className={`historical-series historical-series-rain ${isDaily ? "historical-series-daily" : ""}`}>
+        <svg viewBox={`0 0 ${width} 178`} role="img" aria-label={description}>
+          <g className="historical-series-grid">
+            {[plotTop, plotTop + plotHeight / 2, plotBottom].map((y) => <line key={y} x1={plotLeft} x2={plotRight} y1={y} y2={y} />)}
+          </g>
+          {isDaily && plotted.length > 1 ? <polygon className="historical-series-area" points={areaPoints} /> : null}
+          {isDaily ? <polyline className="historical-series-line" points={linePoints} /> : null}
+          {isDaily
+            ? plotted.map((point) => <circle className="historical-series-point" key={point.key} cx={point.x} cy={point.y} r="1.1"><title>{point.label}: {number(point.value, " mm", digits)} · {point.sampleYears} años</title></circle>)
+            : points.map((point, index) => {
+                if (point.value === null) return null;
+                const y = yFor(point.value);
+                return <rect className="historical-series-bar" key={point.key} x={xFor(index) - barWidth / 2} y={y} width={barWidth} height={Math.max(plotBottom - y, 2)} rx="3"><title>{point.label}: {number(point.value, " mm", digits)} · {point.sampleYears} años</title></rect>;
+              })}
+          <g className="historical-series-axis">
+            {points.map((point, index) => point.isAxisLabel ? <text key={point.key} x={xFor(index)} y="169" textAnchor="middle">{point.axisLabel}</text> : null)}
           </g>
         </svg>
       </div>
@@ -399,7 +512,7 @@ export function Dashboard() {
       ["Elevación", number(result.terrain.elevationM, " m", 0)], ["Pendiente", number(result.terrain.slopeDeg, "°")],
       ["Radiación solar", number(result.energy.solarRadiationKwhM2Day, " kWh/m²/día", 2)], ["Lluvia 7 días", number(result.weather.precipitation7dMm, " mm")],
       ["Sismos M2.5+", String(result.seismic.eventsLastYear)], ["Riesgo drenaje", result.assessment.drainageRisk],
-      ["Lluvia histórica anual", number(result.climateHistory.annualizedPrecipitationMm, " mm", 0)], ["Sismos en 5 años", String(result.seismicHistory.totalEvents)],
+      ["Promedio anual CHIRPS", number(result.climateHistory.annualAveragePrecipitationMm, " mm", 0)], ["Sismos en 5 años", String(result.seismicHistory.totalEvents)],
     ];
     const metricRows = Math.ceil(metrics.length / 2);
     metrics.forEach(([label, value], index) => {
@@ -473,13 +586,14 @@ export function Dashboard() {
             </div>}
 
             {result && activeTab === "climate" && <div className="tab-panel climate-layout" role="tabpanel">
-              <article className="panel climate-history-panel"><div className="panel-heading"><div><span className="panel-kicker">Histórico climático</span><h3>Últimos 24 meses completos</h3></div><BarChart3 size={19} className="accent-icon" /></div><ClimateHistorySummary history={result.climateHistory} /></article>
+              <article className="panel climate-history-panel"><div className="panel-heading"><div><span className="panel-kicker">Histórico climático</span><h3>ERA5 reciente y climatología CHIRPS</h3></div><BarChart3 size={19} className="accent-icon" /></div><ClimateHistorySummary history={result.climateHistory} /></article>
               <div className="historical-variable-grid">
                 <article className="panel historical-variable-panel"><div className="panel-heading"><div><span className="panel-kicker">Temperatura superficial</span><h3>Media mensual</h3></div><Thermometer size={19} className="temperature-series-icon" /></div><HistoricalSeriesChart months={result.climateHistory.months} field="temperatureMeanC" label="Temperatura media mensual" unit=" °C" tone="temperature" /></article>
-                <article className="panel historical-variable-panel"><div className="panel-heading"><div><span className="panel-kicker">Precipitación</span><h3>Acumulado mensual</h3></div><CloudRain size={19} className="rain-series-icon" /></div><HistoricalSeriesChart months={result.climateHistory.months} field="precipitationMm" label="Precipitación acumulada mensual" unit=" mm" tone="rain" digits={0} kind="bars" /></article>
                 <article className="panel historical-variable-panel"><div className="panel-heading"><div><span className="panel-kicker">Viento</span><h3>Máximo diario medio</h3></div><Wind size={19} className="wind-series-icon" /></div><HistoricalSeriesChart months={result.climateHistory.months} field="windMaxAverageKmh" label="Viento máximo diario medio" unit=" km/h" tone="wind" /></article>
                 <article className="panel historical-variable-panel"><div className="panel-heading"><div><span className="panel-kicker">Radiación solar</span><h3>Promedio diario mensual</h3></div><Sun size={19} className="solar-series-icon" /></div><HistoricalSeriesChart months={result.climateHistory.months} field="solarRadiationAverageMjM2" label="Radiación solar media diaria" unit=" MJ/m²" tone="solar" /></article>
                 <article className="panel historical-variable-panel"><div className="panel-heading"><div><span className="panel-kicker">Humedad del suelo</span><h3>Promedio superficial 0–7 cm</h3></div><Droplets size={19} className="soil-series-icon" /></div><HistoricalSeriesChart months={result.climateHistory.months} field="soilMoistureAveragePct" label="Humedad superficial del suelo" unit="%" tone="soil" /></article>
+                <article className="panel historical-variable-panel historical-variable-panel-wide"><div className="panel-heading"><div><span className="panel-kicker">CHIRPS v2.0 · ~5,6 km</span><h3>Precipitación acumulada promedio por mes</h3></div><CloudRain size={19} className="rain-series-icon" /></div><PrecipitationClimatologyChart monthly={result.climateHistory.precipitationMonthlyAverage} /></article>
+                <article className="panel historical-variable-panel historical-variable-panel-wide"><div className="panel-heading"><div><span className="panel-kicker">CHIRPS v2.0 · {result.climateHistory.precipitationYears} años</span><h3>Precipitación promedio por día del año</h3></div><CloudRain size={19} className="rain-series-icon" /></div><PrecipitationClimatologyChart daily={result.climateHistory.precipitationDailyAverage} /></article>
               </div>
               <article className="panel forecast-panel"><div className="panel-heading"><div><span className="panel-kicker">ECMWF IFS HRES · Open-Meteo</span><h3>Precipitación y temperatura máxima</h3></div><CalendarDays size={19} className="accent-icon" /></div><ForecastChart forecast={result.weather.forecast} /></article>
               <article className="panel forecast-table-panel"><div className="panel-heading"><div><span className="panel-kicker">Detalle diario</span><h3>Ventana de planificación</h3></div></div><div className="forecast-table-wrap"><table className="forecast-table"><thead><tr><th>Día</th><th>Temperatura</th><th>Lluvia</th><th>Viento</th><th>Radiación</th></tr></thead><tbody>{result.weather.forecast.map((day) => <tr key={day.date}><td>{date(`${day.date}T12:00:00`, { weekday: "short", day: "numeric" })}</td><td>{number(day.temperatureMinC, "°")} / {number(day.temperatureMaxC, "°")}</td><td>{number(day.precipitationMm, " mm")}</td><td>{number(day.windMaxKmh, " km/h")}</td><td>{number(day.radiationMjM2, " MJ/m²")}</td></tr>)}</tbody></table></div></article>
@@ -492,7 +606,7 @@ export function Dashboard() {
             </div>}
 
             {result && activeTab === "sources" && <div className="tab-panel sources-layout" role="tabpanel">
-              <article className="panel source-intro"><div className="source-intro-icon"><Layers3 size={24} /></div><div><span className="panel-kicker">Trazabilidad</span><h3>Datos objetivos y verificables</h3><p>Cada indicador conserva su fuente. El MDE IGN nacional aporta detalle de 10 m y ERA5-Seamless proporciona las cinco series climáticas históricas.</p></div><button type="button" onClick={downloadJson}><ArrowDownToLine size={16} /> Exportar datos</button></article>
+              <article className="panel source-intro"><div className="source-intro-icon"><Layers3 size={24} /></div><div><span className="panel-kicker">Trazabilidad</span><h3>Datos objetivos y verificables</h3><p>Cada indicador conserva su fuente. El MDE IGN aporta el terreno de 10 m, ERA5-Seamless las variables climáticas recientes y CHIRPS v2.0 la climatología de precipitación.</p></div><button type="button" onClick={downloadJson}><ArrowDownToLine size={16} /> Exportar datos</button></article>
               <div className="source-list">{result.sources.map((item) => <SourceCard key={item.name} source={item} />)}</div>
               <div className="methodology-note"><CircleAlert size={17} /><div><strong>Alcance técnico</strong><p>{result.disclaimer}</p></div></div>
             </div>}

@@ -52,20 +52,42 @@ export type WeatherAnalysis = {
 export type ClimateMonthRecord = {
   month: string;
   temperatureMeanC: number | null;
-  precipitationMm: number | null;
   windMaxAverageKmh: number | null;
   solarRadiationAverageMjM2: number | null;
   soilMoistureAveragePct: number | null;
+};
+
+export type PrecipitationMonthAverage = {
+  month: number;
+  precipitationMm: number | null;
+  sampleYears: number;
+};
+
+export type PrecipitationDayAverage = {
+  dayOfYear: number;
+  month: number;
+  day: number;
+  precipitationMm: number | null;
+  sampleYears: number;
 };
 
 export type ClimateHistoryAnalysis = {
   periodStart: string;
   periodEnd: string;
   model: string;
+  era5Available: boolean;
   months: ClimateMonthRecord[];
   temperatureMeanC: number | null;
-  annualizedPrecipitationMm: number | null;
-  wettestMonth: string | null;
+  precipitationPeriodStart: string;
+  precipitationPeriodEnd: string;
+  precipitationModel: string;
+  precipitationYears: number;
+  precipitationResolutionKm: number;
+  chirpsAvailable: boolean;
+  precipitationMonthlyAverage: PrecipitationMonthAverage[];
+  precipitationDailyAverage: PrecipitationDayAverage[];
+  annualAveragePrecipitationMm: number | null;
+  wettestMonth: number | null;
 };
 
 export type EnergyAnalysis = {

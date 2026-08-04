@@ -420,6 +420,7 @@ button:focus-visible, input:focus-visible, a:focus-visible {
 .history-caption { color: var(--muted); font-size: 8px; line-height: 1.45; margin: 9px 0 0; }
 .historical-variable-grid { display: grid; gap: 11px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .historical-variable-panel { min-width: 0; }
+.historical-variable-panel-wide { grid-column: 1 / -1; }
 .historical-variable-panel:last-child { grid-column: 1 / -1; }
 .temperature-series-icon { color: var(--amber); }
 .rain-series-icon { color: var(--blue); }
@@ -437,6 +438,8 @@ button:focus-visible, input:focus-visible, a:focus-visible {
 .historical-series-line { fill: none; stroke: var(--series); stroke-linecap: round; stroke-linejoin: round; stroke-width: 3; }
 .historical-series-bar { fill: var(--series); opacity: .78; }
 .historical-series-point { fill: #102a2c; stroke: var(--series); stroke-width: 2; }
+.historical-series-daily .historical-series-line { stroke-width: 1.6; }
+.historical-series-daily .historical-series-point { stroke-width: .7; }
 .historical-series-axis text { fill: var(--muted); font: 8px "Geist Mono", monospace; text-transform: capitalize; }
 .historical-series-temperature { --series: #ffca73; --series-soft: rgba(255,202,115,.12); }
 .historical-series-rain { --series: #78bfff; --series-soft: rgba(120,191,255,.12); }
@@ -544,6 +547,7 @@ button:focus-visible, input:focus-visible, a:focus-visible {
   .seismic-stat-grid { grid-template-columns: 1fr 1fr; }
   .history-stats { grid-template-columns: 1fr; }
   .historical-variable-grid { grid-template-columns: 1fr; }
+  .historical-variable-panel-wide { grid-column: auto; }
   .historical-variable-panel:last-child { grid-column: auto; }
   .source-intro { grid-template-columns: 42px 1fr; }
   .source-intro button { grid-column: 1 / -1; justify-content: center; }

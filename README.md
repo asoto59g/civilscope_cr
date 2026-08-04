@@ -15,7 +15,8 @@ Plataforma pública y gratuita de prefactibilidad territorial para Costa Rica. I
 - Elevación, pendiente, orientación y relieve derivados del MDE nacional de 10 × 10 m.
 - Respaldo automático con Copernicus DEM de 90 m si el MDE nacional no está disponible.
 - Temperatura, viento, precipitación, radiación y humedad superficial del suelo.
-- Cinco gráficas climáticas históricas de 24 meses mediante ERA5-Seamless: temperatura, precipitación, viento, radiación y humedad del suelo.
+- Cuatro gráficas climáticas recientes de 24 meses mediante ERA5-Seamless: temperatura, viento, radiación y humedad del suelo.
+- Climatología de precipitación CHIRPS v2.0 de diez años completos, con promedios acumulados por mes y promedios por día del año a 0,05° (~5,6 km).
 - Potencial solar indicativo mediante NASA POWER.
 - Actividad sísmica reciente y tendencia de cinco años para eventos M2.5+ mediante USGS.
 - Lectura preliminar de complejidad topográfica y riesgo de drenaje.
@@ -55,7 +56,8 @@ Si la fuente nacional local o remota no está disponible, la plataforma informa 
 | IGN MDE 2017 / SNIT | Elevación y derivados a 10 m; capa WMTS | Público, sin autenticación |
 | Copernicus DEM vía Open-Meteo | Respaldo de elevación a 90 m | Público para el MVP |
 | ECMWF IFS HRES vía Open-Meteo | Pronóstico de precipitación y demás variables a 9 km | Público, sin clave |
-| Open-Meteo / ERA5-Seamless | Histórico combinado ERA5-Land y ERA5 de 24 meses | Público, sin clave |
+| Open-Meteo / ERA5-Seamless | Temperatura, viento, radiación y humedad históricas de 24 meses | Público, sin clave |
+| UCSB CHC CHIRPS v2.0 vía ClimateSERV | Precipitación diaria y mensual promediada sobre diez años completos | Público, sin clave |
 | NASA POWER Daily | Radiación, temperatura y viento recientes | Público, sin clave |
 | USGS Earthquake Catalog | Sismicidad reciente e histórica | Público, sin clave |
 
@@ -83,7 +85,7 @@ npm run build
 - `src/app/api/analyze/route.ts` valida la solicitud y ejecuta las consultas científicas en Node.js.
 - `src/lib/terrain-dem.ts` transforma WGS84 a CRTM05 y lee únicamente una ventana de 3 × 3 celdas del GeoTIFF.
 - `src/lib/analysis.ts` consulta las fuentes en paralelo, calcula derivados y tolera fallos parciales.
-- `src/lib/history.ts` consulta y agrega los históricos climáticos y sísmicos.
+- `src/lib/history.ts` consulta ERA5 y USGS, administra los trabajos asíncronos de CHIRPS en ClimateSERV y genera climatologías mensuales y diarias.
 - `src/components/analysis-map.tsx` incorpora Leaflet y el WMTS oficial de SNIT.
 - `src/components/dashboard.tsx` presenta indicadores, detalle técnico y exportaciones.
 
