@@ -461,6 +461,83 @@ function LandValuePanel({
   );
 }
 
+function cadastreLocation(
+  parcel: AnalysisResult["cadastre"]["matches"][number],
+) {
+  const code = [
+    parcel.provinceCode,
+    parcel.cantonCode,
+    parcel.districtCode,
+  ]
+    .filter((part): part is string => part !== null)
+    .join("-");
+  return code ? code : "—";
+}
+
+function CadastrePanel({
+  cadastre,
+}: {
+  cadastre: AnalysisResult["cadastre"];
+}) {
+  return (
+    <article className="panel cadastre-panel">
+      <div className="panel-heading">
+        <div>
+          <span className="panel-kicker">Registro Inmobiliario · SNIT</span>
+          <h3>Información catastral del punto</h3>
+        </div>
+        <MapPin size={20} className="cadastre-icon" />
+      </div>
+      {cadastre.available ? (
+        <>
+          <div className="cadastre-match-list">
+            {cadastre.matches.map((parcel) => (
+              <section className="cadastre-match" key={parcel.featureId}>
+                <div className="cadastre-plan">
+                  <span>Plano catastrado</span>
+                  <strong>{parcel.planNumber ?? "No publicado"}</strong>
+                  <small>{parcel.zone}</small>
+                </div>
+                <div className="cadastre-details">
+                  <div>
+                    <span>Finca</span>
+                    <strong>{parcel.propertyNumber ?? "No publicada"}</strong>
+                  </div>
+                  <div>
+                    <span>Identificador</span>
+                    <strong>{parcel.identifier ?? "No publicado"}</strong>
+                  </div>
+                  <div>
+                    <span>Provincia–cantón–distrito</span>
+                    <strong>{cadastreLocation(parcel)}</strong>
+                  </div>
+                </div>
+              </section>
+            ))}
+          </div>
+          {cadastre.ambiguous ? (
+            <div className="cadastre-warning">
+              <CircleAlert size={15} />
+              <span>
+                El punto coincide con {cadastre.matches.length} registros. Puede
+                estar sobre un límite catastral; verifique cuál corresponde.
+              </span>
+            </div>
+          ) : null}
+          <p className="cadastre-note">
+            Consulta informativa de Zona 1 y Zona 2. No sustituye una
+            certificación literal, plano certificado ni consulta registral.
+          </p>
+        </>
+      ) : (
+        <div className="empty-panel">
+          El punto no coincide con una parcela publicada en Zona 1 o Zona 2.
+        </div>
+      )}
+    </article>
+  );
+}
+
 function SourceCard({ source }: { source: DataSource }) {
   const label = source.status === "live" ? "En vivo" : source.status === "requires-credentials" ? "Requiere acceso" : "No disponible";
   return (
@@ -569,12 +646,14 @@ export function Dashboard() {
     pdf.setFont("helvetica", "normal"); pdf.setFontSize(8); pdf.text(result.id, 18, y + 16); y = 54;
     pdf.setTextColor(25, 35, 38); pdf.setFont("helvetica", "bold"); pdf.setFontSize(16); pdf.text(result.location.name, 18, y);
     pdf.setFont("helvetica", "normal"); pdf.setFontSize(9); pdf.text(`${result.location.lat.toFixed(5)}, ${result.location.lng.toFixed(5)} · ${result.location.provinceHint}`, 18, y + 7); y += 20;
+    const primaryCadastre = result.cadastre.matches[0];
     const metrics = [
       ["Elevación", number(result.terrain.elevationM, " m", 0)], ["Pendiente", number(result.terrain.slopeDeg, "°")],
       ["Radiación solar", number(result.energy.solarRadiationKwhM2Day, " kWh/m²/día", 2)], ["Lluvia 7 días", number(result.weather.precipitation7dMm, " mm")],
       ["Sismos M2.5+", String(result.seismic.eventsLastYear)], ["Riesgo drenaje", result.assessment.drainageRisk],
       ["Promedio anual CHIRPS", number(result.climateHistory.annualAveragePrecipitationMm, " mm", 0)], ["Sismos en 5 años", String(result.seismicHistory.totalEvents)],
       ["Valor fiscal de referencia", number(result.landValue.valueCrcM2, " CRC/m²", 0)], ["Zona homogénea", result.landValue.territorialCode ?? "Sin datos"],
+      ["Plano catastrado", primaryCadastre?.planNumber ?? "No publicado"], ["Finca", primaryCadastre ? `${primaryCadastre.zone} · ${primaryCadastre.propertyNumber ?? "Sin dato"}` : "Sin coincidencia"],
     ];
     const metricRows = Math.ceil(metrics.length / 2);
     metrics.forEach(([label, value], index) => {
@@ -586,6 +665,7 @@ export function Dashboard() {
     y += metricRows * 18 + 8; pdf.setFont("helvetica", "bold"); pdf.setFontSize(11); pdf.text("Lectura preliminar", 18, y); y += 7;
     pdf.setFont("helvetica", "normal"); pdf.setFontSize(9);
     result.assessment.notes.forEach((note) => { const lines = pdf.splitTextToSize(`• ${note}`, 174); pdf.text(lines, 18, y); y += lines.length * 5 + 2; });
+    if (y > 215) { pdf.addPage(); y = 18; }
     y += 3; pdf.setFont("helvetica", "bold"); pdf.setFontSize(11); pdf.text("Fuentes", 18, y); y += 7; pdf.setFont("helvetica", "normal"); pdf.setFontSize(8);
     result.sources.forEach((item) => { pdf.text(`${item.name} — ${item.provider}`, 18, y); y += 5; });
     pdf.setFillColor(244, 246, 245); pdf.roundedRect(18, 270, 174, 16, 2, 2, "F"); pdf.setTextColor(80, 90, 92); pdf.setFontSize(7); pdf.text(pdf.splitTextToSize(result.disclaimer, 166), 22, 276);
@@ -642,6 +722,7 @@ export function Dashboard() {
 
             {result && activeTab === "overview" && <div className="tab-panel overview-layout" role="tabpanel">
               <LandValuePanel value={result.landValue} />
+              <CadastrePanel cadastre={result.cadastre} />
               <article className="panel terrain-panel"><div className="panel-heading"><div><span className="panel-kicker">Terreno · {result.terrain.sourceName}</span><h3>Malla de elevación</h3></div><span className="resolution-badge">{result.terrain.resolutionM} m/píxel</span></div><TerrainGrid values={result.terrain.gridM} /><div className="terrain-details"><div><span>Relieve local</span><strong>{number(result.terrain.reliefM, " m", 0)}</strong></div><div><span>Orientación</span><strong>{result.terrain.aspectLabel} · {number(result.terrain.aspectDeg, "°", 0)}</strong></div></div></article>
               <article className="panel assessment-panel"><div className="panel-heading"><div><span className="panel-kicker">Criterio preliminar</span><h3>Lectura para prefactibilidad</h3></div><BadgeCheck size={20} className="accent-icon" /></div><div className="risk-row"><div><span>Riesgo de drenaje</span><strong className={`risk-badge risk-${riskTone(result.assessment.drainageRisk)}`}>{result.assessment.drainageRisk}</strong></div><div><span>Complejidad del terreno</span><strong className={`risk-badge risk-${riskTone(result.assessment.terrainSuitability)}`}>{result.assessment.terrainSuitability}</strong></div></div><ul className="assessment-notes">{result.assessment.notes.map((note) => <li key={note}><Check size={14} /><span>{note}</span></li>)}</ul></article>
               <article className="panel current-panel"><div className="panel-heading"><div><span className="panel-kicker">Condición actual</span><h3>Clima del sitio</h3></div><Radio size={18} className="accent-icon" /></div><div className="current-weather-grid"><div><Thermometer size={18} /><span>Temperatura</span><strong>{number(result.weather.temperatureC, " °C")}</strong></div><div><Wind size={18} /><span>Viento</span><strong>{number(result.weather.windSpeedKmh, " km/h")}</strong></div><div><Droplets size={18} /><span>Humedad suelo</span><strong>{number(result.weather.soilMoisturePct, "%")}</strong></div><div><CloudRain size={18} /><span>Lluvia 7 días</span><strong>{number(result.weather.precipitation7dMm, " mm")}</strong></div></div></article>
@@ -669,7 +750,7 @@ export function Dashboard() {
             </div>}
 
             {result && activeTab === "sources" && <div className="tab-panel sources-layout" role="tabpanel">
-              <article className="panel source-intro"><div className="source-intro-icon"><Layers3 size={24} /></div><div><span className="panel-kicker">Trazabilidad</span><h3>Datos objetivos y verificables</h3><p>Cada indicador conserva su fuente. El MDE IGN aporta el terreno de 10 m, ERA5-Seamless las variables climáticas recientes y CHIRPS v2.0 la climatología de precipitación.</p></div><button type="button" onClick={downloadJson}><ArrowDownToLine size={16} /> Exportar datos</button></article>
+              <article className="panel source-intro"><div className="source-intro-icon"><Layers3 size={24} /></div><div><span className="panel-kicker">Trazabilidad</span><h3>Datos objetivos y verificables</h3><p>Cada indicador conserva su fuente. El MDE IGN aporta el terreno de 10 m, ERA5-Seamless y CHIRPS el clima, Hacienda el valor fiscal zonal y Registro Inmobiliario/SNIT la información catastral.</p></div><button type="button" onClick={downloadJson}><ArrowDownToLine size={16} /> Exportar datos</button></article>
               <div className="source-list">{result.sources.map((item) => <SourceCard key={item.name} source={item} />)}</div>
               <div className="methodology-note"><CircleAlert size={17} /><div><strong>Alcance técnico</strong><p>{result.disclaimer}</p></div></div>
             </div>}

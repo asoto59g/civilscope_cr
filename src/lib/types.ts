@@ -111,6 +111,28 @@ export type LandValueAnalysis = {
   districtCode: string | null;
 };
 
+export type CadastreZone = "Zona 1" | "Zona 2";
+
+export type CadastreParcel = {
+  featureId: string;
+  zone: CadastreZone;
+  planNumber: string | null;
+  propertyNumber: string | null;
+  identifier: string | null;
+  provinceCode: string | null;
+  cantonCode: string | null;
+  districtCode: string | null;
+  duplicate: boolean | null;
+  horizontal: boolean | null;
+  compatible: boolean | null;
+};
+
+export type CadastreAnalysis = {
+  available: boolean;
+  ambiguous: boolean;
+  matches: CadastreParcel[];
+};
+
 export type SeismicEvent = {
   id: string;
   magnitude: number | null;
@@ -166,6 +188,7 @@ export type AnalysisResult = {
   climateHistory: ClimateHistoryAnalysis;
   energy: EnergyAnalysis;
   landValue: LandValueAnalysis;
+  cadastre: CadastreAnalysis;
   seismic: SeismicAnalysis;
   seismicHistory: SeismicHistoryAnalysis;
   assessment: SiteAssessment;

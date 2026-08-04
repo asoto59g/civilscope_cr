@@ -366,6 +366,20 @@ button:focus-visible, input:focus-visible, a:focus-visible {
 .land-value-details > div { background: rgba(255,255,255,.025); border: 1px solid var(--line); border-radius: 8px; display: grid; padding: 11px; }
 .land-value-details strong { font-size: 10px; line-height: 1.35; margin-top: 6px; overflow-wrap: anywhere; }
 .land-value-note { border-top: 1px solid var(--line); color: var(--muted); font-size: 8px; line-height: 1.5; margin: 12px 0 0; padding-top: 10px; }
+.cadastre-panel { grid-column: 1 / -1; }
+.cadastre-icon { color: var(--blue); }
+.cadastre-match-list { display: grid; gap: 8px; }
+.cadastre-match { background: rgba(120,191,255,.035); border: 1px solid rgba(120,191,255,.11); border-radius: 9px; display: grid; gap: 11px; grid-template-columns: minmax(190px, .75fr) minmax(0, 1.5fr); padding: 11px; }
+.cadastre-plan { background: rgba(120,191,255,.055); border-radius: 8px; display: grid; padding: 12px; }
+.cadastre-plan span, .cadastre-details span { color: var(--muted); font-size: 8px; text-transform: uppercase; }
+.cadastre-plan strong { color: #b9ddf5; font-size: 19px; letter-spacing: -.03em; margin-top: 7px; overflow-wrap: anywhere; }
+.cadastre-plan small { background: rgba(120,191,255,.09); border-radius: 999px; color: var(--blue); font-size: 8px; margin-top: 8px; padding: 4px 7px; width: max-content; }
+.cadastre-details { display: grid; gap: 7px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cadastre-details > div { background: rgba(255,255,255,.025); border: 1px solid var(--line); border-radius: 8px; display: grid; padding: 11px; }
+.cadastre-details strong { font-size: 10px; line-height: 1.35; margin-top: 6px; overflow-wrap: anywhere; }
+.cadastre-warning { align-items: flex-start; background: rgba(255,202,115,.055); border: 1px solid rgba(255,202,115,.13); border-radius: 8px; color: var(--amber); display: flex; font-size: 9px; gap: 8px; line-height: 1.45; margin-top: 9px; padding: 10px; }
+.cadastre-warning svg { flex: 0 0 auto; }
+.cadastre-note { border-top: 1px solid var(--line); color: var(--muted); font-size: 8px; line-height: 1.5; margin: 12px 0 0; padding-top: 10px; }
 .resolution-badge { background: rgba(120,191,255,.08); border-radius: 999px; color: var(--blue); font-size: 8px; padding: 5px 7px; }
 .accent-icon { color: var(--accent); }
 .terrain-grid { display: grid; gap: 4px; grid-template-columns: repeat(3, 1fr); }
@@ -561,6 +575,7 @@ button:focus-visible, input:focus-visible, a:focus-visible {
   .historical-variable-panel-wide { grid-column: auto; }
   .historical-variable-panel:last-child { grid-column: auto; }
   .land-value-layout, .land-value-details { grid-template-columns: 1fr; }
+  .cadastre-match, .cadastre-details { grid-template-columns: 1fr; }
   .source-intro { grid-template-columns: 42px 1fr; }
   .source-intro button { grid-column: 1 / -1; justify-content: center; }
 }

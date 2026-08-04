@@ -1,5 +1,10 @@
 import "server-only";
 
+import {
+  CADASTRE_WMS_URL,
+  emptyCadastre,
+  loadCadastre,
+} from "@/lib/cadastre";
 import { nearestProvince } from "@/lib/costa-rica";
 import {
   emptyClimateHistory,
@@ -497,16 +502,25 @@ function ignSource(terrain: TerrainAnalysis): DataSource {
 }
 
 export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisResult> {
-  const [terrainResult, weatherResult, climateHistoryResult, energyResult, landValueResult, seismicResult, seismicHistoryResult] =
-    await Promise.allSettled([
-      loadTerrain(request),
-      loadWeather(request),
-      loadClimateHistory(request),
-      loadEnergy(request),
-      loadLandValue(request),
-      loadSeismic(request),
-      loadSeismicHistory(request),
-    ]);
+  const [
+    terrainResult,
+    weatherResult,
+    climateHistoryResult,
+    energyResult,
+    landValueResult,
+    cadastreResult,
+    seismicResult,
+    seismicHistoryResult,
+  ] = await Promise.allSettled([
+    loadTerrain(request),
+    loadWeather(request),
+    loadClimateHistory(request),
+    loadEnergy(request),
+    loadLandValue(request),
+    loadCadastre(request),
+    loadSeismic(request),
+    loadSeismicHistory(request),
+  ]);
 
   const terrain =
     terrainResult.status === "fulfilled" ? terrainResult.value : unavailableTerrain();
@@ -522,6 +536,10 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
     landValueResult.status === "fulfilled"
       ? landValueResult.value
       : emptyLandValue();
+  const cadastre =
+    cadastreResult.status === "fulfilled"
+      ? cadastreResult.value
+      : emptyCadastre();
   const seismic =
     seismicResult.status === "fulfilled" ? seismicResult.value : unavailableSeismic();
   const seismicHistory =
@@ -543,6 +561,7 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
   ) warnings.push("Histórico de precipitación CHIRPS no disponible temporalmente.");
   if (energyResult.status === "rejected") warnings.push("Serie NASA POWER no disponible temporalmente.");
   if (landValueResult.status === "rejected") warnings.push("Valor fiscal de Hacienda no disponible temporalmente.");
+  if (cadastreResult.status === "rejected") warnings.push("Información catastral del SNIT no disponible temporalmente.");
   if (seismicResult.status === "rejected") warnings.push("Catálogo USGS no disponible temporalmente.");
   if (seismicHistoryResult.status === "rejected") warnings.push("Histórico sísmico no disponible temporalmente.");
   if (
@@ -567,6 +586,7 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
     climateHistory,
     energy,
     landValue,
+    cadastre,
     seismic,
     seismicHistory,
     assessment: buildAssessment(terrain, weather),
@@ -619,6 +639,13 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
         HACIENDA_LAND_VALUE_URL,
       ),
       source(
+        "Catastro Zona 1 y Zona 2",
+        "Registro Inmobiliario / SNIT",
+        cadastreResult,
+        "Consulta puntual de plano, finca e identificador inmobiliario mediante WMS GetFeatureInfo; sin descarga de geometrías.",
+        CADASTRE_WMS_URL + "?service=WMS&request=GetCapabilities",
+      ),
+      source(
         "Earthquake Catalog",
         "USGS",
         seismicResult,
@@ -635,7 +662,7 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
     ],
     warnings,
     disclaimer:
-      "Análisis público de prefactibilidad basado en fuentes nacionales y globales. El valor fiscal es una referencia zonal y no constituye avalúo individual ni precio comercial. No sustituye levantamiento topográfico, estudio geotécnico, hidrológico, ambiental ni criterio profesional responsable.",
+      "Análisis público de prefactibilidad basado en fuentes nacionales y globales. El valor fiscal es una referencia zonal y la información catastral es indicativa; no constituyen avalúo, precio comercial ni certificación registral. No sustituye levantamiento topográfico, estudio geotécnico, hidrológico, ambiental ni criterio profesional responsable.",
   };
 }
 

@@ -4,7 +4,7 @@
 
 Civilscope CR es una plataforma pública, gratuita e independiente para realizar análisis preliminares de sitios dentro de Costa Rica. No requiere registro, afiliación profesional.
 
-La plataforma integra información de terreno, clima, energía solar, actividad sísmica y valores fiscales de referencia del terreno. Sus resultados son insumos de prefactibilidad y no sustituyen estudios técnicos de campo.
+La plataforma integra información de terreno, clima, energía solar, actividad sísmica, valores fiscales de referencia e información catastral pública del punto. Sus resultados son insumos de prefactibilidad y no sustituyen estudios técnicos de campo.
 
 ## 2. Acceso a la plataforma
 
@@ -118,6 +118,7 @@ Incluye:
 - Condiciones meteorológicas actuales.
 - Rendimiento solar indicativo.
 - Valor fiscal de referencia por metro cuadrado, zona homogénea y tipo de uso publicados por el Ministerio de Hacienda.
+- Plano catastrado, finca, identificador inmobiliario y zona publicados por el Registro Inmobiliario mediante SNIT.
 
 Las categorías **Bajo**, **Moderado** y **Alto** son señales de prefactibilidad, no dictámenes técnicos.
 
@@ -130,6 +131,19 @@ Civilscope consulta la capa **Zonas Homogéneas ONT** del Ministerio de Hacienda
 - Código del tipo de uso.
 
 Este dato corresponde a la zona homogénea y no constituye un avalúo individual del inmueble ni una estimación del precio comercial. Las características específicas de un predio pueden modificar su valoración.
+
+#### Información catastral del punto
+
+Civilscope consulta mediante `GetFeatureInfo` las capas **Zona 1** y **Zona 2** del Registro Inmobiliario publicadas por SNIT. Cuando el punto coincide con una parcela, muestra:
+
+- Número de plano catastrado, cuando está publicado.
+- Número de finca.
+- Identificador inmobiliario.
+- Zona catastral y códigos de provincia, cantón y distrito.
+
+Si el atributo `plano` no contiene un valor, la plataforma muestra **No publicado** sin inventar ni inferir un número. Si el punto coincide con varios registros, muestra todos y advierte que puede encontrarse sobre un límite catastral.
+
+La consulta se ejecuta solamente al presionar **Analizar sitio** y utiliza caché para reducir el consumo del WMS. La información es indicativa y no sustituye una certificación registral ni un plano certificado.
 
 ### 7.2 Clima y agua
 
@@ -189,7 +203,7 @@ Esta sección permite verificar la procedencia de cada grupo de datos.
 ### 8.2 Datos JSON
 
 1. Presione **JSON** o **Exportar datos**.
-2. El archivo descargado contiene la respuesta completa de la consulta, incluyendo coordenadas, malla de terreno, clima, energía, valor fiscal de referencia, sismicidad, fuentes y advertencias.
+2. El archivo descargado contiene la respuesta completa de la consulta, incluyendo coordenadas, malla de terreno, clima, energía, valor fiscal de referencia, información catastral, sismicidad, fuentes y advertencias.
 
 El identificador del archivo comienza con `CIVILSCOPE` y contiene la fecha de generación.
 
@@ -197,7 +211,7 @@ El identificador del archivo comienza con `CIVILSCOPE` y contiene la fecha de ge
 
 Si aparece el mensaje que indica que no se pudo leer el MDE IGN de 10 m, el análisis continúa con Copernicus DEM de 90 m. Revise siempre el nombre de la fuente mostrado debajo de **Elevación** y la resolución indicada en la malla.
 
-Una falla parcial de clima, NASA POWER, Hacienda o USGS no invalida automáticamente los datos que sí fueron obtenidos. La advertencia identifica qué información falta.
+Una falla parcial de clima, NASA POWER, Hacienda, SNIT catastral o USGS no invalida automáticamente los datos que sí fueron obtenidos. La advertencia identifica qué información falta.
 
 ## 10. Privacidad y uso público
 
@@ -238,6 +252,13 @@ Una falla parcial de clima, NASA POWER, Hacienda o USGS no invalida automáticam
 - Acerque el mapa a una zona dentro de Costa Rica.
 - Si el servicio WMTS está temporalmente fuera de línea, las otras capas pueden continuar funcionando.
 
+### No aparece un plano catastrado
+
+- Confirme en la pestaña **Fuentes** que el servicio catastral del SNIT esté activo.
+- El punto puede estar fuera de las parcelas publicadas en Zona 1 y Zona 2.
+- Algunos registros publican finca e identificador, pero no el atributo de plano; en ese caso se muestra **No publicado**.
+- Si el servicio limita temporalmente las consultas, espere unos minutos y vuelva a analizar.
+
 ## 12. Alcance técnico
 
 Civilscope CR facilita una revisión inicial del sitio. No sustituye:
@@ -246,7 +267,8 @@ Civilscope CR facilita una revisión inicial del sitio. No sustituye:
 - Estudio geotécnico o de suelos.
 - Estudio hidrológico e hidráulico.
 - Evaluación ambiental.
-- Consulta catastral o normativa.
+- Certificación catastral, registral o normativa.
+- Plano catastrado certificado.
 - Avalúo fiscal individual o estimación del precio comercial.
 - Inspección de campo.
 - Diseño firmado por profesionales responsables.

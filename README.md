@@ -66,6 +66,8 @@ Si la fuente nacional local o remota no está disponible, la plataforma informa 
 | Open-Meteo / ERA5-Seamless | Temperatura, viento, radiación y humedad históricas de 24 meses | Público, sin clave |
 | UCSB CHC CHIRPS v2.0 vía ClimateSERV | Precipitación diaria y mensual promediada sobre diez años completos | Público, sin clave |
 | NASA POWER Daily | Radiación, temperatura y viento recientes | Público, sin clave |
+| Zonas Homogéneas ONT / Ministerio de Hacienda | Valor fiscal zonal de referencia por metro cuadrado | Público, sin clave |
+| Registro Inmobiliario / SNIT | Plano, finca e identificador de la parcela en Zona 1 y Zona 2 | Público, sin clave |
 | USGS Earthquake Catalog | Sismicidad reciente e histórica | Público, sin clave |
 
 ## Desarrollo local
@@ -93,10 +95,11 @@ npm run build
 - `src/lib/terrain-dem.ts` transforma WGS84 a CRTM05 y lee únicamente una ventana de 3 × 3 celdas del GeoTIFF.
 - `src/lib/analysis.ts` consulta las fuentes en paralelo, calcula derivados y tolera fallos parciales.
 - `src/lib/history.ts` consulta ERA5 y USGS, administra los trabajos asíncronos de CHIRPS en ClimateSERV y genera climatologías mensuales y diarias.
+- `src/lib/cadastre.ts` transforma el punto a CRTM05 y consulta Zona 1 y Zona 2 mediante WMS `GetFeatureInfo`, sin descargar geometrías.
 - `src/components/analysis-map.tsx` incorpora Leaflet y el WMTS oficial de SNIT.
 - `src/components/dashboard.tsx` presenta indicadores, detalle técnico y exportaciones.
 
-Las respuestas externas se revalidan cada 15 minutos. La ubicación se envía por `POST`, se valida contra los límites regionales y no se persiste.
+Las respuestas externas se almacenan temporalmente según la fuente; la consulta catastral se revalida cada 24 horas para reducir el consumo del WMS. La ubicación se envía por `POST`, se valida contra los límites regionales y no se persiste.
 
 ## Alcance técnico
 
@@ -107,5 +110,5 @@ Los resultados son insumos de prefactibilidad. No sustituyen levantamiento topog
 1. Convertir y publicar el MDE como COG optimizado para producción.
 2. Evaluar registros de estaciones meteorológicas del IMN para complementar el reanálisis ERA5-Land, sujeto a disponibilidad y condiciones de uso.
 3. Incorporar límites administrativos oficiales, búsqueda geocodificada y guardado opcional de proyectos.
-4. Agregar capas nacionales de amenazas, catastro y normativa conforme a sus condiciones de uso.
+4. Agregar capas nacionales de amenazas y normativa conforme a sus condiciones de uso.
 5. Mejorar informes, auditoría de consultas y herramientas públicas de colaboración.
