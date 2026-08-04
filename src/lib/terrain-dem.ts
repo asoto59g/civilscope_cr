@@ -1,5 +1,6 @@
 import "server-only";
 
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 import proj4 from "proj4";
@@ -8,18 +9,55 @@ import type { GeoTIFFImage } from "geotiff";
 import type { Coordinates } from "@/lib/types";
 
 const DEFAULT_DEM_PATH = join(process.cwd(), "MDE_5K.tif");
+const DEFAULT_REMOTE_DEM_URL =
+  "https://drive.usercontent.google.com/download?id=1nqYFsRDveZOnyVSu6Gg1Xd1clz8NAVMM&export=download&confirm=t";
 const CRTM05_DEFINITION =
   "+proj=tmerc +lat_0=0 +lon_0=-84 +k=0.9999 +x_0=500000 +y_0=0 +ellps=WGS84 +towgs84=-0.16959,0.35312,0.51846,-0.03385,0.16325,-0.03446,0.03693 +units=m +no_defs +type=crs";
 
 let demImagePromise: Promise<GeoTIFFImage> | null = null;
 
+function normalizeRemoteDemUrl(value: string) {
+  try {
+    const url = new URL(value);
+
+    if (url.hostname === "drive.google.com") {
+      const pathMatch = url.pathname.match(/^\/file\/d\/([^/]+)/);
+      const fileId = pathMatch?.[1] ?? url.searchParams.get("id");
+
+      if (fileId) {
+        const downloadUrl = new URL(
+          "https://drive.usercontent.google.com/download",
+        );
+        downloadUrl.searchParams.set("id", fileId);
+        downloadUrl.searchParams.set("export", "download");
+        downloadUrl.searchParams.set("confirm", "t");
+        return downloadUrl.toString();
+      }
+    }
+  } catch {
+    // geotiff.js emitirá el error de URL con el mismo manejo de respaldo.
+  }
+
+  return value;
+}
+
 async function openDemImage() {
   const { fromFile, fromUrl } = await import("geotiff");
-  const remoteUrl = process.env.CIVILSCOPE_DEM_URL?.trim();
-  const localPath = process.env.CIVILSCOPE_DEM_PATH?.trim() || DEFAULT_DEM_PATH;
-  const tiff = remoteUrl
-    ? await fromUrl(remoteUrl, { allowFullFile: false })
-    : await fromFile(localPath);
+  const configuredRemoteUrl = process.env.CIVILSCOPE_DEM_URL?.trim();
+  const configuredLocalPath = process.env.CIVILSCOPE_DEM_PATH?.trim();
+  let tiff;
+
+  if (configuredRemoteUrl) {
+    tiff = await fromUrl(normalizeRemoteDemUrl(configuredRemoteUrl), {
+      allowFullFile: false,
+    });
+  } else if (configuredLocalPath) {
+    tiff = await fromFile(configuredLocalPath);
+  } else if (existsSync(DEFAULT_DEM_PATH)) {
+    tiff = await fromFile(DEFAULT_DEM_PATH);
+  } else {
+    tiff = await fromUrl(DEFAULT_REMOTE_DEM_URL, { allowFullFile: false });
+  }
 
   return tiff.getImage();
 }

@@ -111,35 +111,33 @@ https://civilscope-cr.vercel.app
 
 Sin una variable `CIVILSCOPE_DEM_URL`, la plataforma:
 
+- Intenta leer el COG público `MDE_5K_COG.tif` alojado en Google Drive a 10 m.
 - Mantiene disponible la capa visual WMTS del MDE IGN 2017.
-- Utiliza Copernicus DEM de 90 m como respaldo para los cálculos numéricos.
-- Muestra una advertencia indicando el cambio de fuente y resolución.
+- Usa Copernicus DEM de 90 m como respaldo si Drive no responde o limita el acceso.
+- Muestra una advertencia si cambia de fuente o resolución.
 
-Esta configuración permite publicar y probar la plataforma antes de contratar o configurar almacenamiento para el COG.
+El archivo predeterminado es público y no requiere credenciales. La URL de descarga fue verificada con respuestas `206 Partial Content`, `Accept-Ranges: bytes` y una lectura real de una malla de 3 × 3 celdas.
 
-## 7. Activar el MDE numérico de 10 m
+## 7. Configurar o reemplazar el MDE numérico de 10 m
 
-El archivo `MDE_5K_COG.tif` debe alojarse en almacenamiento de objetos que proporcione:
+El lector acepta una URL directa de almacenamiento de objetos o una URL compartida de Google Drive. Para definir otra fuente:
 
-- Una URL estable accesible desde Internet.
-- Solicitudes parciales HTTP Range.
-- Acceso al archivo sin páginas HTML, confirmaciones de descarga ni cookies interactivas.
-
-Google Drive es adecuado como respaldo, pero no se recomienda como origen de producción. Resultan más apropiados Google Cloud Storage, Cloudflare R2, Amazon S3 o Backblaze B2.
-
-Cuando tenga la URL directa del COG:
-
-1. Abra el proyecto en Vercel.
-2. Vaya a **Settings → Environment Variables**.
-3. Cree la variable:
+1. En Google Drive, confirme **Compartir → Acceso general → Cualquier persona con el enlace → Lector**.
+2. Abra el proyecto en Vercel.
+3. Vaya a **Settings → Environment Variables**.
+4. Cree la variable usando la URL compartida:
 
 ```text
-CIVILSCOPE_DEM_URL=https://almacenamiento.example/MDE_5K_COG.tif
+CIVILSCOPE_DEM_URL=https://drive.google.com/file/d/1nqYFsRDveZOnyVSu6Gg1Xd1clz8NAVMM/view?usp=drive_link
 ```
 
-4. Habilítela para **Production** y **Preview**.
-5. Guarde los cambios.
-6. Abra **Deployments** y vuelva a desplegar la versión más reciente.
+5. Habilítela para **Production** y **Preview**.
+6. Guarde los cambios.
+7. Abra **Deployments** y vuelva a desplegar la versión más reciente.
+
+La variable es opcional mientras se utilice el archivo de Drive ya incorporado. Civilscope convierte las URLs compartidas de Drive a su variante de descarga directa.
+
+Google Drive puede aplicar cuotas o limitaciones. Para mayor tráfico, conviene migrar el mismo COG a Google Cloud Storage, Cloudflare R2, Amazon S3 o Backblaze B2 y cambiar únicamente esta variable.
 
 No configure `CIVILSCOPE_DEM_PATH` en Vercel. Esa variable es únicamente para rutas de archivos locales.
 

@@ -26,7 +26,9 @@ Plataforma pública y gratuita de prefactibilidad territorial para Costa Rica. I
 
 El WMTS de SNIT sirve la capa `IGN_MDE_2017` como teselas PNG para visualización. El cálculo numérico utiliza el GeoTIFF oficial en CRTM05 (EPSG:5367), cuya cuadrícula es de 10 m.
 
-Por defecto el servidor busca `MDE_5K.tif` en la raíz del proyecto. El original pesa aproximadamente 5,2 GB y está excluido de Git. La conversión local generó `MDE_5K_COG.tif`, un COG DEFLATE sin pérdida de 1,524 GiB, con bloques de 512 píxeles y siete niveles de pirámides.
+El servidor primero busca `MDE_5K.tif` en la raíz del proyecto. El original pesa aproximadamente 5,2 GB y está excluido de Git. La conversión local generó `MDE_5K_COG.tif`, un COG DEFLATE sin pérdida de 1,524 GiB, con bloques de 512 píxeles y siete niveles de pirámides.
+
+Cuando no existe un TIFF local ni se configura otra URL, Civilscope usa el COG público `MDE_5K_COG.tif` alojado en Google Drive. El lector solicita únicamente los bloques requeridos mediante HTTP Range.
 
 Para probar la salida optimizada localmente:
 
@@ -35,14 +37,16 @@ $env:CIVILSCOPE_DEM_PATH="C:\git\Civilscope\MDE_5K_COG.tif"
 npm run dev
 ```
 
-Para un despliegue público, aloje el COG en almacenamiento que acepte solicitudes HTTP Range y configure:
+Para reemplazar la fuente remota, configure una URL directa o una URL compartida de Google Drive:
 
 ```powershell
-$env:CIVILSCOPE_DEM_URL="https://datos.example/MDE_5K_COG.tif"
+$env:CIVILSCOPE_DEM_URL="https://drive.google.com/file/d/ID_DEL_ARCHIVO/view"
 npm run dev
 ```
 
-Si ninguna de esas fuentes está disponible, la plataforma informa el cambio y usa el respaldo de 90 m.
+Las URLs compartidas de Drive se convierten internamente a descargas que aceptan solicitudes parciales. El archivo debe tener acceso **Cualquier persona con el enlace → Lector**.
+
+Si la fuente nacional local o remota no está disponible, la plataforma informa el cambio y usa el respaldo de 90 m.
 
 ## Fuentes
 
