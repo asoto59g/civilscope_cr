@@ -5,7 +5,7 @@
 </p>
 
 
-Plataforma pública y gratuita de prefactibilidad territorial para Costa Rica. Integra terreno, clima, energía y sismicidad en una consulta trazable y exportable. Civilscope CR es una iniciativa independiente y no tiene relación con el Colegio de Ingenieros Civiles ni requiere afiliación.
+Plataforma pública y gratuita de prefactibilidad territorial para Costa Rica. Integra terreno, clima, energía y sismicidad en una consulta trazable y exportable. Civilscope CR es una iniciativa independiente.
 
 Link de app:  https://civilscope-cr.vercel.app/
 
