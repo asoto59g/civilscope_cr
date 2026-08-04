@@ -96,7 +96,7 @@ npm run build
 - `src/lib/terrain-dem.ts` transforma WGS84 a CRTM05 y lee únicamente una ventana de 3 × 3 celdas del GeoTIFF.
 - `src/lib/analysis.ts` consulta las fuentes en paralelo, calcula derivados y tolera fallos parciales.
 - `src/lib/history.ts` consulta ERA5 y USGS, administra los trabajos asíncronos de CHIRPS en ClimateSERV y genera climatologías mensuales y diarias.
-- `src/lib/cadastre.ts` transforma el punto a CRTM05 y consulta Zona 1 y Zona 2 mediante WMS `GetFeatureInfo`, sin descargar geometrías.
+- `src/lib/cadastre.ts` transforma el punto a CRTM05, consulta primero Zona 1 y usa Zona 2 como respaldo mediante WMS `GetFeatureInfo`, sin descargar geometrías.
 - `src/lib/land-cover.ts` consulta la categoría del punto en MAF2020 mediante WMS `GetFeatureInfo`, solicitando sólo sus atributos.
 - `src/components/analysis-map.tsx` incorpora Leaflet y el WMTS oficial de SNIT.
 - `src/components/dashboard.tsx` presenta indicadores, detalle técnico y exportaciones.

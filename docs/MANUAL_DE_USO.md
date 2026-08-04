@@ -135,7 +135,7 @@ Este dato corresponde a la zona homogénea y no constituye un avalúo individual
 
 #### Información catastral del punto
 
-Civilscope consulta mediante `GetFeatureInfo` las capas **Zona 1** y **Zona 2** del Registro Inmobiliario publicadas por SNIT. Cuando el punto coincide con una parcela, muestra:
+Civilscope consulta mediante `GetFeatureInfo` las capas del Registro Inmobiliario publicadas por SNIT. Primero busca el punto en **Zona 1** y, si no encuentra una parcela publicada, busca automáticamente en **Zona 2**. Cuando el punto coincide con una parcela, muestra:
 
 - Número de plano catastrado, cuando está publicado.
 - Número de finca.

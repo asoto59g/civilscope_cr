@@ -655,7 +655,7 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
         "Catastro Zona 1 y Zona 2",
         "Registro Inmobiliario / SNIT",
         cadastreResult,
-        "Consulta puntual de plano, finca e identificador inmobiliario mediante WMS GetFeatureInfo; sin descarga de geometrías.",
+        "Consulta puntual de plano, finca e identificador inmobiliario mediante WMS GetFeatureInfo; prioriza Zona 1 y usa Zona 2 como respaldo, sin descargar geometrías.",
         CADASTRE_WMS_URL + "?service=WMS&request=GetCapabilities",
       ),
       source(

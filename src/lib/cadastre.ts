@@ -18,6 +18,10 @@ const QUERY_TIMEOUT_MS = 10_000;
 const HALF_EXTENT_M = 25;
 const MAP_SIZE_PX = 101;
 const CENTER_PIXEL = 50;
+const CADASTRE_LAYERS = [
+  { name: "catastro", zone: "Zona 1" },
+  { name: "catastro_aldia", zone: "Zona 2" },
+] as const satisfies ReadonlyArray<{ name: string; zone: CadastreZone }>;
 
 type WmsProperties = {
   plano?: string | number | null;
@@ -60,16 +64,22 @@ export function emptyCadastre(): CadastreAnalysis {
   };
 }
 
-function zoneFromFeatureId(featureId: string): CadastreZone {
-  return featureId.startsWith("catastro_aldia.") ? "Zona 2" : "Zona 1";
+function zoneFromFeatureId(
+  featureId: string,
+  fallbackZone: CadastreZone,
+): CadastreZone {
+  if (featureId.startsWith("catastro_aldia.")) return "Zona 2";
+  if (featureId.startsWith("catastro.")) return "Zona 1";
+  return fallbackZone;
 }
 
 function parcelFromFeature(
   feature: WmsFeature,
   index: number,
+  fallbackZone: CadastreZone,
 ): CadastreParcel | null {
   if (!feature.properties) return null;
-  const zone = zoneFromFeatureId(feature.id ?? "");
+  const zone = zoneFromFeatureId(feature.id ?? "", fallbackZone);
   const identifier = text(feature.properties.identifica);
   const propertyNumber = text(feature.properties.finca);
   const planNumber = text(feature.properties.plano);
@@ -91,12 +101,15 @@ function parcelFromFeature(
   };
 }
 
-function uniqueParcels(features: WmsFeature[]) {
+function uniqueParcels(
+  features: WmsFeature[],
+  fallbackZone: CadastreZone,
+) {
   const matches: CadastreParcel[] = [];
   const seen = new Set<string>();
 
   features.forEach((feature, index) => {
-    const parcel = parcelFromFeature(feature, index);
+    const parcel = parcelFromFeature(feature, index, fallbackZone);
     if (!parcel || seen.has(parcel.featureId)) return;
     seen.add(parcel.featureId);
     matches.push(parcel);
@@ -105,7 +118,10 @@ function uniqueParcels(features: WmsFeature[]) {
   return matches;
 }
 
-function buildFeatureInfoUrl({ lat, lng }: AnalysisRequest) {
+function buildFeatureInfoUrl(
+  { lat, lng }: AnalysisRequest,
+  layerName: string,
+) {
   const [rawX, rawY] = proj4("WGS84", CRS_8908_DEFINITION, [lng, lat]);
   if (!Number.isFinite(rawX) || !Number.isFinite(rawY)) {
     throw new Error("No fue posible transformar el punto a EPSG:8908.");
@@ -125,8 +141,8 @@ function buildFeatureInfoUrl({ lat, lng }: AnalysisRequest) {
     SERVICE: "WMS",
     VERSION: "1.1.1",
     REQUEST: "GetFeatureInfo",
-    LAYERS: "catastro,catastro_aldia",
-    QUERY_LAYERS: "catastro,catastro_aldia",
+    LAYERS: layerName,
+    QUERY_LAYERS: layerName,
     STYLES: "",
     SRS: "EPSG:8908",
     BBOX: bbox,
@@ -144,10 +160,11 @@ function buildFeatureInfoUrl({ lat, lng }: AnalysisRequest) {
   return CADASTRE_WMS_URL + "?" + params.toString();
 }
 
-export async function loadCadastre(
+async function queryLayer(
   request: AnalysisRequest,
-): Promise<CadastreAnalysis> {
-  const response = await fetch(buildFeatureInfoUrl(request), {
+  layer: (typeof CADASTRE_LAYERS)[number],
+) {
+  const response = await fetch(buildFeatureInfoUrl(request, layer.name), {
     headers: { Accept: "application/json" },
     cache: "force-cache",
     next: { revalidate: 86_400 },
@@ -163,10 +180,43 @@ export async function loadCadastre(
     throw new Error("Respuesta catastral inválida.");
   }
 
-  const matches = uniqueParcels(payload.features);
+  return uniqueParcels(payload.features, layer.zone);
+}
+
+function analysisFromMatches(matches: CadastreParcel[]): CadastreAnalysis {
   return {
     available: matches.length > 0,
     ambiguous: matches.length > 1,
     matches,
   };
+}
+
+export async function loadCadastre(
+  request: AnalysisRequest,
+): Promise<CadastreAnalysis> {
+  let zoneOneError: unknown = null;
+
+  try {
+    const zoneOneMatches = await queryLayer(request, CADASTRE_LAYERS[0]);
+    if (zoneOneMatches.length > 0) {
+      return analysisFromMatches(zoneOneMatches);
+    }
+  } catch (error) {
+    zoneOneError = error;
+  }
+
+  try {
+    const zoneTwoMatches = await queryLayer(request, CADASTRE_LAYERS[1]);
+    if (zoneTwoMatches.length > 0) {
+      return analysisFromMatches(zoneTwoMatches);
+    }
+  } catch (error) {
+    throw new AggregateError(
+      zoneOneError ? [zoneOneError, error] : [error],
+      "No fue posible completar la búsqueda catastral en Zona 2.",
+    );
+  }
+
+  if (zoneOneError) throw zoneOneError;
+  return emptyCadastre();
 }
