@@ -590,6 +590,59 @@ function LandCoverPanel({
   );
 }
 
+function hazardIntersectionLabel(intersects: boolean | null) {
+  if (intersects === true) return "Dentro de la zona";
+  if (intersects === false) return "Fuera de la zona";
+  return "No disponible";
+}
+
+function CneHazardsPanel({
+  hazards,
+}: {
+  hazards: AnalysisResult["cneHazards"];
+}) {
+  return (
+    <article className="panel cne-hazards-panel">
+      <div className="panel-heading">
+        <div>
+          <span className="panel-kicker">CNE · Mapas de amenazas</span>
+          <h3>Intersección del punto seleccionado</h3>
+        </div>
+        <CircleAlert size={20} className="cne-hazards-icon" />
+      </div>
+      <div className="cne-hazard-grid">
+        {hazards.layers.map((layer) => {
+          const tone =
+            layer.intersects === true
+              ? "hit"
+              : layer.intersects === false
+                ? "clear"
+                : "unavailable";
+          return (
+            <div className={`cne-hazard-result cne-hazard-${tone}`} key={layer.key}>
+              {layer.intersects === true ? (
+                <CircleAlert size={17} />
+              ) : layer.intersects === false ? (
+                <Check size={17} />
+              ) : (
+                <Database size={17} />
+              )}
+              <div>
+                <span>{layer.label}</span>
+                <strong>{hazardIntersectionLabel(layer.intersects)}</strong>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <p className="cne-hazards-note">
+        Resultado cartográfico puntual de tres capas WFS. No sustituye un
+        estudio de amenaza, visita de campo ni criterio oficial específico.
+      </p>
+    </article>
+  );
+}
+
 function SourceCard({ source }: { source: DataSource }) {
   const label = source.status === "live" ? "En vivo" : source.status === "requires-credentials" ? "Requiere acceso" : "No disponible";
   return (
@@ -620,6 +673,10 @@ export function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [locatingMode, setLocatingMode] = useState<
+    "gps" | "approximate" | null
+  >(null);
+  const [locationStatus, setLocationStatus] = useState<string | null>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -636,6 +693,7 @@ export function Dashboard() {
     setCoordinates(next);
     setSiteName(`Punto en ${nearestProvince(next)}`);
     setError(null);
+    setLocationStatus(null);
   }
 
   function selectPreset(index: number) {
@@ -643,6 +701,7 @@ export function Dashboard() {
     setCoordinates({ lat: preset.lat, lng: preset.lng });
     setSiteName(preset.name);
     setError(null);
+    setLocationStatus(null);
   }
 
   async function runAnalysis() {
@@ -663,16 +722,45 @@ export function Dashboard() {
     }
   }
 
-  function useMyLocation() {
-    if (!navigator.geolocation) return setError("Este navegador no permite obtener la ubicación.");
+  function requestDeviceLocation(mode: "gps" | "approximate") {
+    if (!navigator.geolocation) {
+      setError("Este navegador no permite obtener la ubicación.");
+      return;
+    }
+    setLocatingMode(mode);
+    setLocationStatus(null);
+    setError(null);
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         const next = { lat: Number(coords.latitude.toFixed(5)), lng: Number(coords.longitude.toFixed(5)) };
-        if (!isInsideCostaRicaBounds(next)) return setError("La ubicación detectada está fuera de Costa Rica.");
+        if (!isInsideCostaRicaBounds(next)) {
+          setError("La ubicación detectada está fuera de Costa Rica.");
+          setLocatingMode(null);
+          return;
+        }
         selectCoordinates(next);
+        setLocationStatus(
+          `${mode === "gps" ? "GPS preciso" : "Ubicación aproximada"} · precisión estimada ±${Math.round(coords.accuracy)} m`,
+        );
+        setLocatingMode(null);
       },
-      () => setError("No fue posible acceder a tu ubicación."),
-      { enableHighAccuracy: true, timeout: 8_000 },
+      (positionError) => {
+        const message =
+          positionError.code === positionError.PERMISSION_DENIED
+            ? "El permiso de ubicación fue rechazado. Habilítelo en el navegador."
+            : positionError.code === positionError.TIMEOUT
+              ? "La ubicación tardó demasiado. Pruebe la opción aproximada."
+              : "No fue posible determinar la ubicación del dispositivo.";
+        setError(message);
+        setLocatingMode(null);
+      },
+      mode === "gps"
+        ? { enableHighAccuracy: true, timeout: 20_000, maximumAge: 0 }
+        : {
+            enableHighAccuracy: false,
+            timeout: 10_000,
+            maximumAge: 300_000,
+          },
     );
   }
 
@@ -707,6 +795,10 @@ export function Dashboard() {
       ["Valor fiscal de referencia", number(result.landValue.valueCrcM2, " CRC/m²", 0)], ["Zona homogénea", result.landValue.territorialCode ?? "Sin datos"],
       ["Plano catastrado", primaryCadastre?.planNumber ?? "No publicado"], ["Finca", primaryCadastre ? `${primaryCadastre.zone} · ${primaryCadastre.propertyNumber ?? "Sin dato"}` : "Sin coincidencia"],
       ["Cobertura MAF2020", result.landCover.category ?? "Sin clasificación"],
+      ...result.cneHazards.layers.map((layer) => [
+        `CNE · ${layer.label}`,
+        hazardIntersectionLabel(layer.intersects),
+      ]),
     ];
     const metricRows = Math.ceil(metrics.length / 2);
     metrics.forEach(([label, value], index) => {
@@ -716,7 +808,9 @@ export function Dashboard() {
       const metricValue = value.length > 38 ? `${value.slice(0, 37)}…` : value;
       pdf.setFontSize(10); pdf.setTextColor(20, 31, 34); pdf.setFont("helvetica", "bold"); pdf.text(metricValue, x + 4, rowY + 11); pdf.setFont("helvetica", "normal");
     });
-    y += metricRows * 18 + 8; pdf.setFont("helvetica", "bold"); pdf.setFontSize(11); pdf.text("Lectura preliminar", 18, y); y += 7;
+    y += metricRows * 18 + 8;
+    if (y > 205) { pdf.addPage(); y = 18; }
+    pdf.setFont("helvetica", "bold"); pdf.setFontSize(11); pdf.text("Lectura preliminar", 18, y); y += 7;
     pdf.setFont("helvetica", "normal"); pdf.setFontSize(9);
     result.assessment.notes.forEach((note) => { const lines = pdf.splitTextToSize(`• ${note}`, 174); pdf.text(lines, 18, y); y += lines.length * 5 + 2; });
     if (y > 215) { pdf.addPage(); y = 18; }
@@ -754,7 +848,21 @@ export function Dashboard() {
             <div className="field-group"><label htmlFor="latitude">Latitud</label><input id="latitude" type="number" step="0.00001" value={coordinates.lat} onChange={(event) => setCoordinates((current) => ({ ...current, lat: Number(event.target.value) }))} /></div>
             <div className="field-group"><label htmlFor="longitude">Longitud</label><input id="longitude" type="number" step="0.00001" value={coordinates.lng} onChange={(event) => setCoordinates((current) => ({ ...current, lng: Number(event.target.value) }))} /></div>
           </div>
-          <button className="location-button" type="button" onClick={useMyLocation}><LocateFixed size={16} /> Usar mi ubicación</button>
+          <div className="location-options">
+            <div className="field-label">Ubicación del dispositivo</div>
+            <div className="location-choice-grid">
+              <button className="location-button" type="button" disabled={locatingMode !== null} onClick={() => requestDeviceLocation("gps")}>
+                {locatingMode === "gps" ? <RefreshCw className="spin" size={16} /> : <Satellite size={16} />}
+                <span><strong>GPS preciso</strong><small>Alta precisión</small></span>
+              </button>
+              <button className="location-button" type="button" disabled={locatingMode !== null} onClick={() => requestDeviceLocation("approximate")}>
+                {locatingMode === "approximate" ? <RefreshCw className="spin" size={16} /> : <Radio size={16} />}
+                <span><strong>Aproximada</strong><small>Red, Wi-Fi o telefonía</small></span>
+              </button>
+            </div>
+            {locationStatus ? <div className="location-readout" role="status"><LocateFixed size={14} /><span>{locationStatus}</span></div> : null}
+            <p className="location-help">El navegador selecciona el sensor disponible y reporta su precisión estimada.</p>
+          </div>
           <div className="preset-section"><div className="field-label">Sitios frecuentes</div><div className="preset-list">{SITE_PRESETS.slice(0, 5).map((preset, index) => <button key={preset.name} type="button" onClick={() => selectPreset(index)}><span><MapPin size={14} /> {preset.name}</span><small>{preset.province}</small></button>)}</div></div>
           {error && <div className="error-message" role="alert"><CircleAlert size={16} /><span>{error}</span></div>}
           <button className="analyze-button" type="button" onClick={runAnalysis} disabled={loading}>{loading ? <RefreshCw className="spin" size={17} /> : <Search size={17} />}{loading ? "Consultando fuentes…" : "Analizar sitio"}</button>
@@ -778,6 +886,7 @@ export function Dashboard() {
               <LandValuePanel value={result.landValue} />
               <CadastrePanel cadastre={result.cadastre} />
               <LandCoverPanel cover={result.landCover} />
+              <CneHazardsPanel hazards={result.cneHazards} />
               <article className="panel terrain-panel"><div className="panel-heading"><div><span className="panel-kicker">Terreno · {result.terrain.sourceName}</span><h3>Malla de elevación</h3></div><span className="resolution-badge">{result.terrain.resolutionM} m/píxel</span></div><TerrainGrid values={result.terrain.gridM} /><div className="terrain-details"><div><span>Relieve local</span><strong>{number(result.terrain.reliefM, " m", 0)}</strong></div><div><span>Orientación</span><strong>{result.terrain.aspectLabel} · {number(result.terrain.aspectDeg, "°", 0)}</strong></div></div></article>
               <article className="panel assessment-panel"><div className="panel-heading"><div><span className="panel-kicker">Criterio preliminar</span><h3>Lectura para prefactibilidad</h3></div><BadgeCheck size={20} className="accent-icon" /></div><div className="risk-row"><div><span>Riesgo de drenaje</span><strong className={`risk-badge risk-${riskTone(result.assessment.drainageRisk)}`}>{result.assessment.drainageRisk}</strong></div><div><span>Complejidad del terreno</span><strong className={`risk-badge risk-${riskTone(result.assessment.terrainSuitability)}`}>{result.assessment.terrainSuitability}</strong></div></div><ul className="assessment-notes">{result.assessment.notes.map((note) => <li key={note}><Check size={14} /><span>{note}</span></li>)}</ul></article>
               <article className="panel current-panel"><div className="panel-heading"><div><span className="panel-kicker">Condición actual</span><h3>Clima del sitio</h3></div><Radio size={18} className="accent-icon" /></div><div className="current-weather-grid"><div><Thermometer size={18} /><span>Temperatura</span><strong>{number(result.weather.temperatureC, " °C")}</strong></div><div><Wind size={18} /><span>Viento</span><strong>{number(result.weather.windSpeedKmh, " km/h")}</strong></div><div><Droplets size={18} /><span>Humedad suelo</span><strong>{number(result.weather.soilMoisturePct, "%")}</strong></div><div><CloudRain size={18} /><span>Lluvia 7 días</span><strong>{number(result.weather.precipitation7dMm, " mm")}</strong></div></div></article>
@@ -805,7 +914,7 @@ export function Dashboard() {
             </div>}
 
             {result && activeTab === "sources" && <div className="tab-panel sources-layout" role="tabpanel">
-              <article className="panel source-intro"><div className="source-intro-icon"><Layers3 size={24} /></div><div><span className="panel-kicker">Trazabilidad</span><h3>Datos objetivos y verificables</h3><p>Cada indicador conserva su fuente. El MDE IGN aporta el terreno de 10 m, ERA5-Seamless y CHIRPS el clima, Hacienda el valor fiscal zonal, Registro Inmobiliario/SNIT el catastro y SINIA la cobertura agropecuaria y forestal de 2020.</p></div><button type="button" onClick={downloadJson}><ArrowDownToLine size={16} /> Exportar datos</button></article>
+              <article className="panel source-intro"><div className="source-intro-icon"><Layers3 size={24} /></div><div><span className="panel-kicker">Trazabilidad</span><h3>Datos objetivos y verificables</h3><p>Cada indicador conserva su fuente. El MDE IGN aporta el terreno de 10 m, ERA5-Seamless y CHIRPS el clima, Hacienda el valor fiscal zonal, Registro Inmobiliario/SNIT el catastro, SINIA la cobertura de 2020 y la CNE las intersecciones con amenazas cartografiadas.</p></div><button type="button" onClick={downloadJson}><ArrowDownToLine size={16} /> Exportar datos</button></article>
               <div className="source-list">{result.sources.map((item) => <SourceCard key={item.name} source={item} />)}</div>
               <div className="methodology-note"><CircleAlert size={17} /><div><strong>Alcance técnico</strong><p>{result.disclaimer}</p></div></div>
             </div>}

@@ -43,11 +43,14 @@ La plataforma rechaza puntos fuera de los límites regionales configurados para 
 
 ### 3.3 Ubicación del dispositivo
 
-1. Presione **Usar mi ubicación**.
+1. Seleccione una de estas opciones:
+   - **GPS preciso:** solicita alta precisión y puede tardar más o consumir más batería.
+   - **Aproximada:** permite al navegador usar red, Wi-Fi, telefonía o una ubicación reciente para responder más rápido.
 2. Autorice el acceso a la ubicación cuando el navegador lo solicite.
-3. Verifique el punto seleccionado antes de analizarlo.
+3. Revise la precisión estimada, expresada como `± metros`.
+4. Verifique el punto seleccionado en el mapa antes de analizarlo.
 
-La precisión depende del dispositivo, el navegador y la disponibilidad de GPS. La ubicación se usa para efectuar la consulta y no se almacena permanentemente.
+La aplicación solicita el nivel de precisión, pero el navegador y el sistema operativo deciden qué sensor o proveedor está disponible. Por ello, **GPS preciso** no garantiza que el dispositivo active un receptor satelital y **Aproximada** puede combinar telefonía, Wi-Fi, dirección IP o datos almacenados. La ubicación se usa para efectuar la consulta y no se almacena permanentemente.
 
 ### 3.4 Sitios frecuentes
 
@@ -120,6 +123,7 @@ Incluye:
 - Valor fiscal de referencia por metro cuadrado, zona homogénea y tipo de uso publicados por el Ministerio de Hacienda.
 - Plano catastrado, finca, identificador inmobiliario y zona publicados por el Registro Inmobiliario mediante SNIT.
 - Categoría de cobertura del Mapa Agropecuario y Forestal 2020 publicado por SINIA.
+- Intersección puntual con Deslizamientos, Inundación ZMT con Lidar y Áreas con potencial de inundación publicadas por la CNE.
 
 Las categorías **Bajo**, **Moderado** y **Alto** son señales de prefactibilidad, no dictámenes técnicos.
 
@@ -156,6 +160,16 @@ Civilscope consulta mediante `GetFeatureInfo` la capa **MAF2020** publicada por 
 - La resolución de 10 m.
 
 La consulta solicita únicamente los atributos `CATEGORIA` y `value`, sin descargar la geometría completa. El resultado representa la cobertura identificada para 2020; no determina el uso actual, la aptitud agrícola, la zonificación legal ni los permisos aplicables al terreno.
+
+#### Amenazas cartografiadas por la CNE
+
+Civilscope transforma el punto a CRTM05 y consulta tres capas poligonales del WFS de la Comisión Nacional de Emergencias:
+
+- **Deslizamientos**.
+- **Inundación ZMT con Lidar**.
+- **Áreas con potencial de inundación**.
+
+Para cada capa muestra **Dentro de la zona**, **Fuera de la zona** o **No disponible**. La consulta utiliza un filtro espacial `BBOX` de 2 cm centrado en el punto y solicita únicamente el conteo de coincidencias, sin descargar las geometrías. El resultado sólo indica una intersección cartográfica con la cobertura publicada y no sustituye un estudio de amenaza, revisión de escala, visita de campo ni criterio oficial específico para el inmueble.
 
 ### 7.2 Clima y agua
 
@@ -215,7 +229,7 @@ Esta sección permite verificar la procedencia de cada grupo de datos.
 ### 8.2 Datos JSON
 
 1. Presione **JSON** o **Exportar datos**.
-2. El archivo descargado contiene la respuesta completa de la consulta, incluyendo coordenadas, malla de terreno, clima, energía, valor fiscal de referencia, información catastral, cobertura MAF2020, sismicidad, fuentes y advertencias.
+2. El archivo descargado contiene la respuesta completa de la consulta, incluyendo coordenadas, malla de terreno, clima, energía, valor fiscal de referencia, información catastral, cobertura MAF2020, intersecciones CNE, sismicidad, fuentes y advertencias.
 
 El identificador del archivo comienza con `CIVILSCOPE` y contiene la fecha de generación.
 
@@ -223,7 +237,7 @@ El identificador del archivo comienza con `CIVILSCOPE` y contiene la fecha de ge
 
 Si aparece el mensaje que indica que no se pudo leer el MDE IGN de 10 m, el análisis continúa con Copernicus DEM de 90 m. Revise siempre el nombre de la fuente mostrado debajo de **Elevación** y la resolución indicada en la malla.
 
-Una falla parcial de clima, NASA POWER, Hacienda, SNIT catastral, SINIA MAF2020 o USGS no invalida automáticamente los datos que sí fueron obtenidos. La advertencia identifica qué información falta.
+Una falla parcial de clima, NASA POWER, Hacienda, SNIT catastral, SINIA MAF2020, CNE o USGS no invalida automáticamente los datos que sí fueron obtenidos. La advertencia identifica qué información falta.
 
 ## 10. Privacidad y uso público
 
@@ -277,6 +291,12 @@ Una falla parcial de clima, NASA POWER, Hacienda, SNIT catastral, SINIA MAF2020 
 - El punto puede estar fuera de la cobertura publicada o sobre una celda sin clasificación.
 - Si el WMS de SINIA no responde, espere unos minutos y vuelva a analizar.
 
+### Una amenaza CNE aparece como no disponible
+
+- Consulte la pestaña **Fuentes** para confirmar el estado del WFS de la CNE.
+- Repita el análisis después de unos minutos; cada una de las tres capas se verifica independientemente.
+- No interprete **No disponible** como **Fuera de la zona**.
+
 ## 12. Alcance técnico
 
 Civilscope CR facilita una revisión inicial del sitio. No sustituye:
@@ -288,6 +308,7 @@ Civilscope CR facilita una revisión inicial del sitio. No sustituye:
 - Certificación catastral, registral o normativa.
 - Plano catastrado certificado.
 - Determinación del uso actual, aptitud agrícola o zonificación legal a partir de MAF2020.
+- Estudio de amenaza por deslizamiento o inundación basado únicamente en la intersección CNE.
 - Avalúo fiscal individual o estimación del precio comercial.
 - Inspección de campo.
 - Diseño firmado por profesionales responsables.

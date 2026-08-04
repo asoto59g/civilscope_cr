@@ -141,6 +141,23 @@ export type LandCoverAnalysis = {
   resolutionM: number;
 };
 
+export type CneHazardKey =
+  | "landslides"
+  | "zmtLidarFlooding"
+  | "potentialFlooding";
+
+export type CneHazardLayerResult = {
+  key: CneHazardKey;
+  label: string;
+  intersects: boolean | null;
+};
+
+export type CneHazardAnalysis = {
+  available: boolean;
+  intersectsAny: boolean;
+  layers: CneHazardLayerResult[];
+};
+
 export type SeismicEvent = {
   id: string;
   magnitude: number | null;
@@ -198,6 +215,7 @@ export type AnalysisResult = {
   landValue: LandValueAnalysis;
   cadastre: CadastreAnalysis;
   landCover: LandCoverAnalysis;
+  cneHazards: CneHazardAnalysis;
   seismic: SeismicAnalysis;
   seismicHistory: SeismicHistoryAnalysis;
   assessment: SiteAssessment;

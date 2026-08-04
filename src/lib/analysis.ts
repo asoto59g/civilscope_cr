@@ -5,6 +5,11 @@ import {
   emptyCadastre,
   loadCadastre,
 } from "@/lib/cadastre";
+import {
+  CNE_WFS_URL,
+  emptyCneHazards,
+  loadCneHazards,
+} from "@/lib/cne-hazards";
 import { nearestProvince } from "@/lib/costa-rica";
 import {
   emptyClimateHistory,
@@ -515,6 +520,7 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
     landValueResult,
     cadastreResult,
     landCoverResult,
+    cneHazardsResult,
     seismicResult,
     seismicHistoryResult,
   ] = await Promise.allSettled([
@@ -525,6 +531,7 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
     loadLandValue(request),
     loadCadastre(request),
     loadLandCover(request),
+    loadCneHazards(request),
     loadSeismic(request),
     loadSeismicHistory(request),
   ]);
@@ -551,6 +558,10 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
     landCoverResult.status === "fulfilled"
       ? landCoverResult.value
       : emptyLandCover();
+  const cneHazards =
+    cneHazardsResult.status === "fulfilled"
+      ? cneHazardsResult.value
+      : emptyCneHazards();
   const seismic =
     seismicResult.status === "fulfilled" ? seismicResult.value : unavailableSeismic();
   const seismicHistory =
@@ -574,6 +585,10 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
   if (landValueResult.status === "rejected") warnings.push("Valor fiscal de Hacienda no disponible temporalmente.");
   if (cadastreResult.status === "rejected") warnings.push("Información catastral del SNIT no disponible temporalmente.");
   if (landCoverResult.status === "rejected") warnings.push("Clasificación MAF2020 del SINIA no disponible temporalmente.");
+  if (
+    cneHazardsResult.status === "rejected" ||
+    !cneHazards.available
+  ) warnings.push("Una o más capas de amenaza de la CNE no están disponibles temporalmente.");
   if (seismicResult.status === "rejected") warnings.push("Catálogo USGS no disponible temporalmente.");
   if (seismicHistoryResult.status === "rejected") warnings.push("Histórico sísmico no disponible temporalmente.");
   if (
@@ -600,6 +615,7 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
     landValue,
     cadastre,
     landCover,
+    cneHazards,
     seismic,
     seismicHistory,
     assessment: buildAssessment(terrain, weather),
@@ -666,6 +682,14 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
         SINIA_MAF2020_WMS_URL +
           "?service=WMS&version=1.3.0&request=GetCapabilities",
       ),
+      availabilitySource(
+        "Amenazas cartografiadas CNE",
+        "Comisión Nacional de Prevención de Riesgos y Atención de Emergencias",
+        cneHazards.available,
+        "Intersección puntual con Deslizamientos, Inundación ZMT con Lidar y Áreas con potencial de inundación; consulta WFS sin descargar geometrías.",
+        CNE_WFS_URL +
+          "?service=WFS&version=1.1.0&request=GetCapabilities",
+      ),
       source(
         "Earthquake Catalog",
         "USGS",
@@ -683,7 +707,7 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
     ],
     warnings,
     disclaimer:
-      "Análisis público de prefactibilidad basado en fuentes nacionales y globales. El valor fiscal es una referencia zonal, la información catastral es indicativa y MAF2020 representa la cobertura observada en 2020; no constituyen avalúo, precio comercial, certificación registral ni zonificación legal vigente. No sustituye levantamiento topográfico, estudio geotécnico, hidrológico, ambiental ni criterio profesional responsable.",
+      "Análisis público de prefactibilidad basado en fuentes nacionales y globales. El valor fiscal es una referencia zonal, la información catastral es indicativa, MAF2020 representa la cobertura observada en 2020 y las capas CNE sólo indican intersección cartográfica; no constituyen avalúo, precio comercial, certificación registral, zonificación legal ni estudio de amenaza. No sustituye levantamiento topográfico, estudio geotécnico, hidrológico, ambiental ni criterio profesional responsable.",
   };
 }
 

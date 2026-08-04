@@ -69,6 +69,7 @@ Si la fuente nacional local o remota no está disponible, la plataforma informa 
 | Zonas Homogéneas ONT / Ministerio de Hacienda | Valor fiscal zonal de referencia por metro cuadrado | Público, sin clave |
 | Registro Inmobiliario / SNIT | Plano, finca e identificador de la parcela en Zona 1 y Zona 2 | Público, sin clave |
 | Mapa Agropecuario y Forestal 2020 / SINIA | Categoría de cobertura del punto a 10 m | Público, sin clave |
+| WFS de amenazas / CNE | Intersección con deslizamientos y dos coberturas de inundación | Público, sin clave |
 | USGS Earthquake Catalog | Sismicidad reciente e histórica | Público, sin clave |
 
 ## Desarrollo local
@@ -98,6 +99,7 @@ npm run build
 - `src/lib/history.ts` consulta ERA5 y USGS, administra los trabajos asíncronos de CHIRPS en ClimateSERV y genera climatologías mensuales y diarias.
 - `src/lib/cadastre.ts` transforma el punto a CRTM05, consulta primero Zona 1 y usa Zona 2 como respaldo mediante WMS `GetFeatureInfo`, sin descargar geometrías.
 - `src/lib/land-cover.ts` consulta la categoría del punto en MAF2020 mediante WMS `GetFeatureInfo`, solicitando sólo sus atributos.
+- `src/lib/cne-hazards.ts` transforma el punto a CRTM05 y consulta tres capas poligonales mediante filtros WFS `BBOX` puntuales de tipo `hits`.
 - `src/components/analysis-map.tsx` incorpora Leaflet y el WMTS oficial de SNIT.
 - `src/components/dashboard.tsx` presenta indicadores, detalle técnico y exportaciones.
 

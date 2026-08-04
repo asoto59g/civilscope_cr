@@ -155,17 +155,28 @@ button:focus-visible, input:focus-visible, a:focus-visible {
 .input-with-icon input { padding-left: 36px; }
 .coordinate-grid { display: grid; gap: 9px; grid-template-columns: 1fr 1fr; }
 .coordinate-grid input { font-family: "Geist Mono", monospace; font-size: 11px; }
+.location-options { margin: 2px 0 20px; }
+.location-choice-grid { display: grid; gap: 7px; grid-template-columns: 1fr 1fr; }
 .location-button {
-  background: transparent;
-  border: 0;
-  color: #b6c7c3;
+  background: rgba(255,255,255,.025);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: #c8d6d3;
   cursor: pointer;
-  font-size: 11px;
-  gap: 7px;
-  margin: -2px 0 20px;
-  padding: 3px 0;
+  gap: 8px;
+  min-height: 48px;
+  padding: 8px;
+  width: 100%;
 }
-.location-button:hover { color: var(--accent); }
+.location-button:hover { background: rgba(201,241,124,.045); border-color: rgba(201,241,124,.25); color: var(--accent); }
+.location-button:disabled { cursor: wait; opacity: .58; }
+.location-button > svg { flex: 0 0 auto; }
+.location-button > span { display: grid; gap: 2px; min-width: 0; text-align: left; }
+.location-button strong { font-size: 9px; line-height: 1.2; }
+.location-button small { color: var(--faint); font-size: 7px; line-height: 1.25; }
+.location-readout { align-items: flex-start; background: rgba(201,241,124,.05); border-radius: 7px; color: var(--accent); display: flex; font-size: 8px; gap: 6px; line-height: 1.4; margin-top: 7px; padding: 7px 8px; }
+.location-readout svg { flex: 0 0 auto; }
+.location-help { color: var(--faint); font-size: 8px; line-height: 1.4; margin: 7px 0 0; }
 .preset-section { border-top: 1px solid var(--line); padding-top: 18px; }
 .preset-list { display: grid; gap: 4px; }
 .preset-list button {
@@ -391,6 +402,21 @@ button:focus-visible, input:focus-visible, a:focus-visible {
 .land-cover-details > div { background: rgba(255,255,255,.025); border: 1px solid var(--line); border-radius: 8px; display: grid; padding: 11px; }
 .land-cover-details strong { font-size: 11px; line-height: 1.35; margin-top: 6px; overflow-wrap: anywhere; }
 .land-cover-note { border-top: 1px solid var(--line); color: var(--muted); font-size: 8px; line-height: 1.5; margin: 12px 0 0; padding-top: 10px; }
+.cne-hazards-panel { grid-column: 1 / -1; }
+.cne-hazards-icon { color: var(--danger); }
+.cne-hazard-grid { display: grid; gap: 8px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cne-hazard-result { align-items: flex-start; border: 1px solid var(--line); border-radius: 9px; display: flex; gap: 9px; min-width: 0; padding: 12px; }
+.cne-hazard-result > svg { flex: 0 0 auto; }
+.cne-hazard-result > div { display: grid; gap: 6px; min-width: 0; }
+.cne-hazard-result span { color: var(--muted); font-size: 8px; line-height: 1.3; text-transform: uppercase; }
+.cne-hazard-result strong { font-size: 11px; line-height: 1.3; }
+.cne-hazard-hit { background: rgba(255,143,134,.055); border-color: rgba(255,143,134,.16); }
+.cne-hazard-hit svg, .cne-hazard-hit strong { color: var(--danger); }
+.cne-hazard-clear { background: rgba(201,241,124,.04); border-color: rgba(201,241,124,.12); }
+.cne-hazard-clear svg, .cne-hazard-clear strong { color: var(--accent); }
+.cne-hazard-unavailable { background: rgba(255,202,115,.04); border-color: rgba(255,202,115,.12); }
+.cne-hazard-unavailable svg, .cne-hazard-unavailable strong { color: var(--amber); }
+.cne-hazards-note { border-top: 1px solid var(--line); color: var(--muted); font-size: 8px; line-height: 1.5; margin: 12px 0 0; padding-top: 10px; }
 .resolution-badge { background: rgba(120,191,255,.08); border-radius: 999px; color: var(--blue); font-size: 8px; padding: 5px 7px; }
 .accent-icon { color: var(--accent); }
 .terrain-grid { display: grid; gap: 4px; grid-template-columns: repeat(3, 1fr); }
@@ -588,6 +614,7 @@ button:focus-visible, input:focus-visible, a:focus-visible {
   .land-value-layout, .land-value-details { grid-template-columns: 1fr; }
   .cadastre-match, .cadastre-details { grid-template-columns: 1fr; }
   .land-cover-layout, .land-cover-details { grid-template-columns: 1fr; }
+  .cne-hazard-grid { grid-template-columns: 1fr; }
   .source-intro { grid-template-columns: 42px 1fr; }
   .source-intro button { grid-column: 1 / -1; justify-content: center; }
 }
