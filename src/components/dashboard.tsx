@@ -45,6 +45,7 @@ import type {
   AnalysisRequest,
   AnalysisResult,
   ClimateHistoryAnalysis,
+  ClimateMonthRecord,
   DataSource,
   ForecastDay,
   RiskLevel,
@@ -121,14 +122,10 @@ function ForecastChart({ forecast }: { forecast: ForecastDay[] }) {
   );
 }
 
-function ClimateHistoryChart({ history }: { history: ClimateHistoryAnalysis }) {
+function ClimateHistorySummary({ history }: { history: ClimateHistoryAnalysis }) {
   if (!history.months.length) {
     return <div className="empty-panel">No hay histórico climático disponible.</div>;
   }
-  const maximum = Math.max(
-    ...history.months.map((month) => month.precipitationMm ?? 0),
-    10,
-  );
   return (
     <>
       <div className="history-stats">
@@ -136,22 +133,97 @@ function ClimateHistoryChart({ history }: { history: ClimateHistoryAnalysis }) {
         <div><span>Precipitación anualizada</span><strong>{number(history.annualizedPrecipitationMm, " mm", 0)}</strong></div>
         <div><span>Mes más lluvioso</span><strong>{history.wettestMonth ? date(`${history.wettestMonth}-15T12:00:00`, { month: "short", year: "numeric" }) : "—"}</strong></div>
       </div>
-      <div className="history-legend"><span><i className="rain-key" /> Precipitación mensual</span><span><i className="temperature-key" /> Temperatura media</span></div>
-      <div className="history-scroll">
-        <div className="history-columns" role="img" aria-label="Precipitación y temperatura mensuales de los últimos 24 meses completos">
-          {history.months.map((month) => {
-            const rain = month.precipitationMm ?? 0;
-            return (
-              <div className="history-column" key={month.month} title={`${month.month}: ${number(month.precipitationMm, " mm")} y ${number(month.temperatureMeanC, " °C")}`}>
-                <span className="history-temp">{number(month.temperatureMeanC, "°", 0)}</span>
-                <div className="history-bar-track"><span className="history-bar-fill" style={{ height: `${Math.max((rain / maximum) * 100, 2)}%` }} /></div>
-                <small>{date(`${month.month}-15T12:00:00`, { month: "short", year: "2-digit" })}</small>
-              </div>
-            );
-          })}
-        </div>
-      </div>
       <p className="history-caption">{history.model} · {history.periodStart} a {history.periodEnd}. Reanálisis climático, no medición de estación.</p>
+    </>
+  );
+}
+
+type ClimateSeriesField =
+  | "temperatureMeanC"
+  | "precipitationMm"
+  | "windMaxAverageKmh"
+  | "solarRadiationAverageMjM2"
+  | "soilMoistureAveragePct";
+
+type HistoricalSeriesProps = {
+  months: ClimateMonthRecord[];
+  field: ClimateSeriesField;
+  label: string;
+  unit: string;
+  tone: "temperature" | "rain" | "wind" | "solar" | "soil";
+  digits?: number;
+  kind?: "line" | "bars";
+};
+
+function HistoricalSeriesChart({
+  months,
+  field,
+  label,
+  unit,
+  tone,
+  digits = 1,
+  kind = "line",
+}: HistoricalSeriesProps) {
+  const values = months
+    .map((month) => month[field])
+    .filter((value): value is number => value !== null);
+  if (!values.length) {
+    return <div className="empty-panel">No hay datos históricos para esta variable.</div>;
+  }
+
+  const minimum = Math.min(...values);
+  const maximum = Math.max(...values);
+  const averageValue = values.reduce((total, value) => total + value, 0) / values.length;
+  const rawRange = Math.max(maximum - minimum, Math.abs(maximum) * 0.05, 1);
+  const lowerBound = kind === "bars" ? Math.min(0, minimum) : minimum - rawRange * 0.12;
+  const upperBound = maximum + rawRange * 0.12;
+  const scaleRange = Math.max(upperBound - lowerBound, 1);
+  const width = 640;
+  const plotTop = 14;
+  const plotBottom = 142;
+  const plotLeft = 18;
+  const plotRight = 622;
+  const plotHeight = plotBottom - plotTop;
+  const xFor = (index: number) =>
+    plotLeft + (index / Math.max(months.length - 1, 1)) * (plotRight - plotLeft);
+  const yFor = (value: number) =>
+    plotTop + (1 - (value - lowerBound) / scaleRange) * plotHeight;
+  const points = months.flatMap((month, index) => {
+    const value = month[field];
+    return value === null ? [] : [{ month: month.month, value, x: xFor(index), y: yFor(value) }];
+  });
+  const linePoints = points.map((point) => `${point.x},${point.y}`).join(" ");
+  const areaPoints = points.length
+    ? `${points[0].x},${plotBottom} ${linePoints} ${points.at(-1)!.x},${plotBottom}`
+    : "";
+  const labelIndexes = new Set([0, 6, 12, 18, months.length - 1]);
+  const barWidth = Math.max(8, (plotRight - plotLeft) / months.length - 7);
+
+  return (
+    <>
+      <div className="series-metrics">
+        <div><span>Promedio</span><strong>{number(averageValue, unit, digits)}</strong></div>
+        <div><span>Mínimo</span><strong>{number(minimum, unit, digits)}</strong></div>
+        <div><span>Máximo</span><strong>{number(maximum, unit, digits)}</strong></div>
+      </div>
+      <div className={`historical-series historical-series-${tone}`}>
+        <svg viewBox={`0 0 ${width} 178`} role="img" aria-label={`${label} durante los últimos 24 meses completos`}>
+          <g className="historical-series-grid">
+            {[plotTop, plotTop + plotHeight / 2, plotBottom].map((y) => <line key={y} x1={plotLeft} x2={plotRight} y1={y} y2={y} />)}
+          </g>
+          {kind === "line" && points.length > 1 ? <polygon className="historical-series-area" points={areaPoints} /> : null}
+          {kind === "line" ? <polyline className="historical-series-line" points={linePoints} /> : null}
+          {kind === "bars" ? months.map((month, index) => {
+            const value = month[field];
+            if (value === null) return null;
+            const y = yFor(value);
+            return <rect className="historical-series-bar" key={month.month} x={xFor(index) - barWidth / 2} y={y} width={barWidth} height={Math.max(plotBottom - y, 2)} rx="3"><title>{date(`${month.month}-15T12:00:00`, { month: "long", year: "numeric" })}: {number(value, unit, digits)}</title></rect>;
+          }) : points.map((point) => <circle className="historical-series-point" key={point.month} cx={point.x} cy={point.y} r="3"><title>{date(`${point.month}-15T12:00:00`, { month: "long", year: "numeric" })}: {number(point.value, unit, digits)}</title></circle>)}
+          <g className="historical-series-axis">
+            {months.map((month, index) => labelIndexes.has(index) ? <text key={month.month} x={xFor(index)} y="169" textAnchor="middle">{date(`${month.month}-15T12:00:00`, { month: "short", year: "2-digit" })}</text> : null)}
+          </g>
+        </svg>
+      </div>
     </>
   );
 }
@@ -401,7 +473,14 @@ export function Dashboard() {
             </div>}
 
             {result && activeTab === "climate" && <div className="tab-panel climate-layout" role="tabpanel">
-              <article className="panel climate-history-panel"><div className="panel-heading"><div><span className="panel-kicker">Histórico climático</span><h3>Últimos 24 meses completos</h3></div><BarChart3 size={19} className="accent-icon" /></div><ClimateHistoryChart history={result.climateHistory} /></article>
+              <article className="panel climate-history-panel"><div className="panel-heading"><div><span className="panel-kicker">Histórico climático</span><h3>Últimos 24 meses completos</h3></div><BarChart3 size={19} className="accent-icon" /></div><ClimateHistorySummary history={result.climateHistory} /></article>
+              <div className="historical-variable-grid">
+                <article className="panel historical-variable-panel"><div className="panel-heading"><div><span className="panel-kicker">Temperatura superficial</span><h3>Media mensual</h3></div><Thermometer size={19} className="temperature-series-icon" /></div><HistoricalSeriesChart months={result.climateHistory.months} field="temperatureMeanC" label="Temperatura media mensual" unit=" °C" tone="temperature" /></article>
+                <article className="panel historical-variable-panel"><div className="panel-heading"><div><span className="panel-kicker">Precipitación</span><h3>Acumulado mensual</h3></div><CloudRain size={19} className="rain-series-icon" /></div><HistoricalSeriesChart months={result.climateHistory.months} field="precipitationMm" label="Precipitación acumulada mensual" unit=" mm" tone="rain" digits={0} kind="bars" /></article>
+                <article className="panel historical-variable-panel"><div className="panel-heading"><div><span className="panel-kicker">Viento</span><h3>Máximo diario medio</h3></div><Wind size={19} className="wind-series-icon" /></div><HistoricalSeriesChart months={result.climateHistory.months} field="windMaxAverageKmh" label="Viento máximo diario medio" unit=" km/h" tone="wind" /></article>
+                <article className="panel historical-variable-panel"><div className="panel-heading"><div><span className="panel-kicker">Radiación solar</span><h3>Promedio diario mensual</h3></div><Sun size={19} className="solar-series-icon" /></div><HistoricalSeriesChart months={result.climateHistory.months} field="solarRadiationAverageMjM2" label="Radiación solar media diaria" unit=" MJ/m²" tone="solar" /></article>
+                <article className="panel historical-variable-panel"><div className="panel-heading"><div><span className="panel-kicker">Humedad del suelo</span><h3>Promedio superficial 0–7 cm</h3></div><Droplets size={19} className="soil-series-icon" /></div><HistoricalSeriesChart months={result.climateHistory.months} field="soilMoistureAveragePct" label="Humedad superficial del suelo" unit="%" tone="soil" /></article>
+              </div>
               <article className="panel forecast-panel"><div className="panel-heading"><div><span className="panel-kicker">ECMWF IFS HRES · Open-Meteo</span><h3>Precipitación y temperatura máxima</h3></div><CalendarDays size={19} className="accent-icon" /></div><ForecastChart forecast={result.weather.forecast} /></article>
               <article className="panel forecast-table-panel"><div className="panel-heading"><div><span className="panel-kicker">Detalle diario</span><h3>Ventana de planificación</h3></div></div><div className="forecast-table-wrap"><table className="forecast-table"><thead><tr><th>Día</th><th>Temperatura</th><th>Lluvia</th><th>Viento</th><th>Radiación</th></tr></thead><tbody>{result.weather.forecast.map((day) => <tr key={day.date}><td>{date(`${day.date}T12:00:00`, { weekday: "short", day: "numeric" })}</td><td>{number(day.temperatureMinC, "°")} / {number(day.temperatureMaxC, "°")}</td><td>{number(day.precipitationMm, " mm")}</td><td>{number(day.windMaxKmh, " km/h")}</td><td>{number(day.radiationMjM2, " MJ/m²")}</td></tr>)}</tbody></table></div></article>
             </div>}
@@ -413,7 +492,7 @@ export function Dashboard() {
             </div>}
 
             {result && activeTab === "sources" && <div className="tab-panel sources-layout" role="tabpanel">
-              <article className="panel source-intro"><div className="source-intro-icon"><Layers3 size={24} /></div><div><span className="panel-kicker">Trazabilidad</span><h3>Datos objetivos y verificables</h3><p>Cada indicador conserva su fuente. El MDE IGN nacional aporta detalle de 10 m y ERA5-Land proporciona el histórico climático.</p></div><button type="button" onClick={downloadJson}><ArrowDownToLine size={16} /> Exportar datos</button></article>
+              <article className="panel source-intro"><div className="source-intro-icon"><Layers3 size={24} /></div><div><span className="panel-kicker">Trazabilidad</span><h3>Datos objetivos y verificables</h3><p>Cada indicador conserva su fuente. El MDE IGN nacional aporta detalle de 10 m y ERA5-Seamless proporciona las cinco series climáticas históricas.</p></div><button type="button" onClick={downloadJson}><ArrowDownToLine size={16} /> Exportar datos</button></article>
               <div className="source-list">{result.sources.map((item) => <SourceCard key={item.name} source={item} />)}</div>
               <div className="methodology-note"><CircleAlert size={17} /><div><strong>Alcance técnico</strong><p>{result.disclaimer}</p></div></div>
             </div>}

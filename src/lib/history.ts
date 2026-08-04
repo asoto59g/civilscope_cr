@@ -17,6 +17,7 @@ type HistoricalWeatherResponse = {
     precipitation_sum?: number[];
     wind_speed_10m_max?: number[];
     shortwave_radiation_sum?: number[];
+    soil_moisture_0_to_7cm_mean?: number[];
   };
 };
 
@@ -32,6 +33,7 @@ type MonthBucket = {
   precipitation: number[];
   wind: number[];
   radiation: number[];
+  soilMoisture: number[];
 };
 
 async function fetchJson<T>(url: string, revalidate: number): Promise<T> {
@@ -100,7 +102,7 @@ export function emptyClimateHistory(): ClimateHistoryAnalysis {
   return {
     periodStart: "No disponible",
     periodEnd: "No disponible",
-    model: "ERA5-Land",
+    model: "ERA5-Seamless",
     months: [],
     temperatureMeanC: null,
     annualizedPrecipitationMm: null,
@@ -125,9 +127,9 @@ export async function loadClimateHistory({
     start_date: isoDate(start),
     end_date: isoDate(end),
     daily:
-      "temperature_2m_mean,precipitation_sum,wind_speed_10m_max,shortwave_radiation_sum",
+      "temperature_2m_mean,precipitation_sum,wind_speed_10m_max,shortwave_radiation_sum,soil_moisture_0_to_7cm_mean",
     timezone: "America/Costa_Rica",
-    models: "era5_land",
+    models: "era5_seamless",
   });
   const payload = await fetchJson<HistoricalWeatherResponse>(
     `https://archive-api.open-meteo.com/v1/archive?${params}`,
@@ -150,6 +152,7 @@ export async function loadClimateHistory({
       precipitation: [],
       wind: [],
       radiation: [],
+      soilMoisture: [],
     });
   }
 
@@ -160,20 +163,28 @@ export async function loadClimateHistory({
     const precipitation = daily.precipitation_sum?.[index];
     const wind = daily.wind_speed_10m_max?.[index];
     const radiation = daily.shortwave_radiation_sum?.[index];
+    const soilMoisture = daily.soil_moisture_0_to_7cm_mean?.[index];
     if (valid(temperature)) bucket.temperatures.push(temperature);
     if (valid(precipitation)) bucket.precipitation.push(precipitation);
     if (valid(wind)) bucket.wind.push(wind);
     if (valid(radiation)) bucket.radiation.push(radiation);
+    if (valid(soilMoisture)) bucket.soilMoisture.push(soilMoisture);
   });
 
   const months: ClimateMonthRecord[] = Array.from(buckets.entries()).map(
-    ([month, bucket]) => ({
-      month,
-      temperatureMeanC: round(average(bucket.temperatures)),
-      precipitationMm: round(sum(bucket.precipitation), 0),
-      windMaxAverageKmh: round(average(bucket.wind)),
-      solarRadiationAverageMjM2: round(average(bucket.radiation)),
-    }),
+    ([month, bucket]) => {
+      const soilMoisture = average(bucket.soilMoisture);
+      return {
+        month,
+        temperatureMeanC: round(average(bucket.temperatures)),
+        precipitationMm: round(sum(bucket.precipitation), 0),
+        windMaxAverageKmh: round(average(bucket.wind)),
+        solarRadiationAverageMjM2: round(average(bucket.radiation)),
+        soilMoistureAveragePct: round(
+          soilMoisture === null ? null : soilMoisture * 100,
+        ),
+      };
+    },
   );
   const allTemperatures = Array.from(buckets.values()).flatMap(
     (bucket) => bucket.temperatures,
@@ -196,7 +207,7 @@ export async function loadClimateHistory({
   return {
     periodStart: isoDate(start),
     periodEnd: isoDate(end),
-    model: "ERA5-Land · 0,1° (~11 km)",
+    model: "ERA5-Seamless · 11–28 km según variable",
     months,
     temperatureMeanC: round(average(allTemperatures)),
     annualizedPrecipitationMm: round(

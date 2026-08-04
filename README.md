@@ -15,7 +15,7 @@ Plataforma pública y gratuita de prefactibilidad territorial para Costa Rica. I
 - Elevación, pendiente, orientación y relieve derivados del MDE nacional de 10 × 10 m.
 - Respaldo automático con Copernicus DEM de 90 m si el MDE nacional no está disponible.
 - Temperatura, viento, precipitación, radiación y humedad superficial del suelo.
-- Histórico climático mensual de 24 meses mediante reanálisis ERA5-Land.
+- Cinco gráficas climáticas históricas de 24 meses mediante ERA5-Seamless: temperatura, precipitación, viento, radiación y humedad del suelo.
 - Potencial solar indicativo mediante NASA POWER.
 - Actividad sísmica reciente y tendencia de cinco años para eventos M2.5+ mediante USGS.
 - Lectura preliminar de complejidad topográfica y riesgo de drenaje.
@@ -51,7 +51,7 @@ Si ninguna de esas fuentes está disponible, la plataforma informa el cambio y u
 | IGN MDE 2017 / SNIT | Elevación y derivados a 10 m; capa WMTS | Público, sin autenticación |
 | Copernicus DEM vía Open-Meteo | Respaldo de elevación a 90 m | Público para el MVP |
 | ECMWF IFS HRES vía Open-Meteo | Pronóstico de precipitación y demás variables a 9 km | Público, sin clave |
-| Open-Meteo / ERA5-Land | Reanálisis climático histórico de 24 meses | Público, sin clave |
+| Open-Meteo / ERA5-Seamless | Histórico combinado ERA5-Land y ERA5 de 24 meses | Público, sin clave |
 | NASA POWER Daily | Radiación, temperatura y viento recientes | Público, sin clave |
 | USGS Earthquake Catalog | Sismicidad reciente e histórica | Público, sin clave |
 

@@ -55,6 +55,7 @@ export type ClimateMonthRecord = {
   precipitationMm: number | null;
   windMaxAverageKmh: number | null;
   solarRadiationAverageMjM2: number | null;
+  soilMoistureAveragePct: number | null;
 };
 
 export type ClimateHistoryAnalysis = {

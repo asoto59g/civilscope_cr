@@ -555,10 +555,10 @@ export async function analyzeSite(request: AnalysisRequest): Promise<AnalysisRes
         "https://open-meteo.com/en/docs/ecmwf-api",
       ),
       source(
-        "Histórico climático ERA5-Land",
+        "Histórico climático ERA5-Seamless",
         "Open-Meteo / Copernicus",
         climateHistoryResult,
-        "Reanálisis diario agregado en 24 meses de temperatura, precipitación, viento y radiación.",
+        "Combina ERA5-Land para superficie y suelo con ERA5 para precipitación, viento y radiación durante 24 meses.",
         "https://open-meteo.com/en/docs/historical-weather-api",
       ),
       source(

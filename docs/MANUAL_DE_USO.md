@@ -134,10 +134,12 @@ El pronóstico utiliza explícitamente el modelo global ECMWF IFS HRES de 9 km, 
 
 Además incluye un histórico de los últimos 24 meses completos con:
 
-- Precipitación acumulada y temperatura media por mes.
+- Gráficas independientes para temperatura, precipitación, viento, radiación solar y humedad superficial del suelo.
+- Promedio, valor mínimo y valor máximo de cada variable durante el período.
 - Temperatura media del período, precipitación anualizada y mes más lluvioso.
-- Viento máximo promedio y radiación mensual disponibles en la descarga JSON.
-- Datos de reanálisis ERA5-Land. Son una estimación climática de cuadrícula, no mediciones de una estación meteorológica local.
+- Viento máximo diario medio, radiación solar media diaria y humedad del suelo entre 0 y 7 cm.
+- Consulta de cada mes al posicionar el puntero sobre los puntos o barras del gráfico.
+- Datos ERA5-Seamless: combina ERA5-Land para superficie y suelo con ERA5 para precipitación, viento y radiación. Son estimaciones de cuadrícula, no mediciones de una estación local.
 
 ### 7.3 Sismicidad
 
